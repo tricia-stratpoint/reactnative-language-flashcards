@@ -11,7 +11,7 @@ export default function TabLayout() {
         headerShown: false,
         tabBarStyle: {
           backgroundColor: "#ffffff",
-          borderTopWidth: 1,
+          borderTopWidth: 4,
           borderTopColor: "#f3f4f6",
         },
         tabBarLabelStyle: {
@@ -22,9 +22,9 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="study"
+        name="index"
         options={{
-          title: "Study",
+          title: "Learn",
           tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
         }}
       />
@@ -38,7 +38,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="achievements"
         options={{
-          title: "Achievements",
+          title: "Progress",
           tabBarIcon: ({ color, size }) => <Trophy color={color} size={size} />,
         }}
       />

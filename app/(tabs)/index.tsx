@@ -105,7 +105,7 @@ export default function StudyScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
         <View style={styles.content}>
-          <Text style={styles.title}>Ready to Study?</Text>
+          <Text style={styles.title}>Ready to Learn?</Text>
           <Text style={styles.subtitle}>Choose a deck to begin your learning session</Text>
 
           <View style={styles.decksContainer}>

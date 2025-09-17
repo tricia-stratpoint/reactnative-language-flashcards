@@ -44,7 +44,7 @@ export default function AchievementsScreen() {
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
         <View style={styles.header}>
-          <Text style={styles.title}>Achievements</Text>
+          <Text style={styles.title}>Progress</Text>
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
