@@ -222,6 +222,7 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 30,
+    backfaceVisibility: 'hidden',
   },
   backSide: {
     backgroundColor: 'transparent',
