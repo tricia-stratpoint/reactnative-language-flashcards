@@ -1,15 +1,17 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Play, BarChart3 } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFlashcards } from '@/hooks/flashcard-store';
-import FlashcardComponent from '@/components/FlashcardComponent';
-import { Flashcard } from '@/types/flashcard';
+import React, { useState, useEffect } from "react";
+import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Play, BarChart3 } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFlashcards } from "@/hooks/flashcard-store";
+import FlashcardComponent from "@/components/FlashcardComponent";
+import { Flashcard } from "@/types/flashcard";
+import { Colors } from "../constants/colors";
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
-  const { decks, getDueCards, getNewCards, updateCardAfterReview, isLoading } = useFlashcards();
+  const { decks, getDueCards, getNewCards, updateCardAfterReview, isLoading } =
+    useFlashcards();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [studyCards, setStudyCards] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
@@ -26,20 +28,22 @@ export default function StudyScreen() {
     }
   }, [selectedDeck, getDueCards, getNewCards]);
 
-  const handleCardSwipe = async (difficulty: 'again' | 'hard' | 'good' | 'easy') => {
+  const handleCardSwipe = async (
+    difficulty: "again" | "hard" | "good" | "easy"
+  ) => {
     const currentCard = studyCards[currentCardIndex];
     if (!currentCard || !difficulty?.trim()) return;
 
     await updateCardAfterReview(currentCard.id, difficulty);
-    
-    const isCorrect = difficulty === 'good' || difficulty === 'easy';
-    setSessionStats(prev => ({
+
+    const isCorrect = difficulty === "good" || difficulty === "easy";
+    setSessionStats((prev) => ({
       studied: prev.studied + 1,
       correct: prev.correct + (isCorrect ? 1 : 0),
     }));
 
     if (currentCardIndex < studyCards.length - 1) {
-      setCurrentCardIndex(prev => prev + 1);
+      setCurrentCardIndex((prev) => prev + 1);
     } else {
       // Session complete - show completion message
       setSelectedDeck(null);
@@ -53,22 +57,33 @@ export default function StudyScreen() {
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+        <LinearGradient
+          colors={[Colors.blue, Colors.greenMint]}
+          style={styles.gradient}
+        >
           <Text style={styles.loadingText}>Loading...</Text>
         </LinearGradient>
       </View>
     );
   }
 
-  if (selectedDeck && studyCards.length > 0 && currentCardIndex < studyCards.length) {
+  if (
+    selectedDeck &&
+    studyCards.length > 0 &&
+    currentCardIndex < studyCards.length
+  ) {
     const currentCard = studyCards[currentCardIndex];
     const progress = ((currentCardIndex + 1) / studyCards.length) * 100;
 
+    // learning flashcards page
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+        <LinearGradient
+          colors={[Colors.blue, Colors.greenMint]}
+          style={styles.gradient}
+        >
           <View style={styles.header}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.backButton}
               onPress={() => setSelectedDeck(null)}
             >
@@ -93,7 +108,13 @@ export default function StudyScreen() {
 
           <View style={styles.statsContainer}>
             <Text style={styles.statsText}>
-              Studied: {sessionStats.studied} | Accuracy: {sessionStats.studied > 0 ? Math.round((sessionStats.correct / sessionStats.studied) * 100) : 0}%
+              Studied: {sessionStats.studied} | Accuracy:{" "}
+              {sessionStats.studied > 0
+                ? Math.round(
+                    (sessionStats.correct / sessionStats.studied) * 100
+                  )
+                : 0}
+              %
             </Text>
           </View>
         </LinearGradient>
@@ -101,34 +122,47 @@ export default function StudyScreen() {
     );
   }
 
+  // available deck selection page
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+      <LinearGradient
+        colors={[Colors.white, Colors.mintAccent]}
+        style={styles.gradient}
+      >
         <View style={styles.content}>
+          <Image
+            source={require("../../assets/images/pocketlingo-logo.png")}
+            style={styles.logo}
+            resizeMode="contain"
+          />
           <Text style={styles.title}>Ready to Learn?</Text>
-          <Text style={styles.subtitle}>Choose a deck to begin your learning session</Text>
+          <Text style={styles.subtitle}>
+            Choose a deck to begin your learning session
+          </Text>
 
           <View style={styles.decksContainer}>
             {decks.map((deck) => {
               const dueCards = getDueCards(deck.id);
               const newCards = getNewCards(deck.id);
-              const totalCards = dueCards.length + Math.min(newCards.length, 10);
+              const totalCards =
+                dueCards.length + Math.min(newCards.length, 10);
 
+              // individual deck card
               return (
                 <TouchableOpacity
                   key={deck.id}
-                  style={[styles.deckCard, { borderLeftColor: deck.color }]}
+                  style={[styles.deckCard, { backgroundColor: deck.color }]}
                   onPress={() => startStudySession(deck.id)}
                   disabled={totalCards === 0}
                 >
                   <View style={styles.deckHeader}>
                     <Text style={styles.deckName}>{deck.name}</Text>
-                    <Play size={20} color="#6366f1" />
+                    <Play size={20} color={Colors.blue} />
                   </View>
                   <Text style={styles.deckDescription}>{deck.description}</Text>
                   <View style={styles.deckStats}>
                     <View style={styles.statItem}>
-                      <BarChart3 size={16} color="#6b7280" />
+                      <BarChart3 size={16} color={Colors.gray} />
                       <Text style={styles.statText}>
                         {totalCards} cards to study
                       </Text>
@@ -137,7 +171,9 @@ export default function StudyScreen() {
                       <Text style={styles.dueText}>{dueCards.length} due</Text>
                     )}
                     {newCards.length > 0 && (
-                      <Text style={styles.newText}>{Math.min(newCards.length, 10)} new</Text>
+                      <Text style={styles.newText}>
+                        {Math.min(newCards.length, 10)} new
+                      </Text>
                     )}
                   </View>
                 </TouchableOpacity>
@@ -163,15 +199,15 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    color: '#ffffff',
-    textAlign: 'center',
-    marginTop: 20,
+    fontWeight: "bold",
+    color: Colors.greenMint,
+    textAlign: "center",
+    marginTop: 5,
   },
   subtitle: {
     fontSize: 16,
-    color: '#e5e7eb',
-    textAlign: 'center',
+    color: Colors.gray,
+    textAlign: "center",
     marginTop: 8,
     marginBottom: 40,
   },
@@ -179,75 +215,73 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   deckCard: {
-    backgroundColor: '#ffffff',
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
-    borderLeftWidth: 4,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
   deckHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     marginBottom: 8,
   },
   deckName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontWeight: "600",
+    color: Colors.white,
   },
   deckDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.white,
     marginBottom: 12,
   },
   deckStats: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 12,
   },
   statItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 4,
   },
   statText: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.white,
   },
   dueText: {
     fontSize: 12,
-    color: '#ef4444',
-    backgroundColor: '#fef2f2',
+    color: Colors.red,
+    backgroundColor: Colors.white,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   newText: {
     fontSize: 12,
-    color: '#3b82f6',
-    backgroundColor: '#eff6ff',
+    color: Colors.greenDark,
+    backgroundColor: Colors.white,
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 12,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   loadingText: {
     fontSize: 18,
-    color: '#ffffff',
-    textAlign: 'center',
+    color: Colors.white,
+    textAlign: "center",
     marginTop: 100,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
     paddingTop: 20,
   },
@@ -255,39 +289,45 @@ const styles = StyleSheet.create({
     padding: 8,
   },
   backButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   progressText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   progressBar: {
     height: 4,
-    backgroundColor: 'rgba(255, 255, 255, 0.3)',
+    backgroundColor: "rgba(255, 255, 255, 0.3)",
     marginHorizontal: 20,
     marginTop: 10,
     borderRadius: 2,
   },
   progressFill: {
-    height: '100%',
-    backgroundColor: '#ffffff',
+    height: "100%",
+    backgroundColor: Colors.white,
     borderRadius: 2,
   },
   studyContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   statsContainer: {
     padding: 20,
-    alignItems: 'center',
+    alignItems: "center",
   },
   statsText: {
-    color: '#ffffff',
+    color: Colors.black,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
+  },
+  logo: {
+    width: 240,
+    height: 120,
+    alignSelf: "center",
+    shadowColor: "transparent",
   },
 });

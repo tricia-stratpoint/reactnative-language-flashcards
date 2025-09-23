@@ -1,10 +1,10 @@
 export const Colors = {
-  red: "#ec8f8fff", //pwede
+  red: "#ec8f8fff",
   orange: "#f5c89f",
   greenMint: "#9ae4e5",
-  greenDark: "#81bbaf", //pwede
+  greenDark: "#81bbaf",
   blue: "#82cee0",
-  purple: "#9288c0", //pwede
+  purple: "#9288c0",
   pink: "#f6c1d5",
   white: "#ffffff",
   mintAccent: "#e6f6f6ff",
