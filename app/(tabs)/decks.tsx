@@ -1,22 +1,39 @@
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, TextInput, Modal } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Plus, BookOpen } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useFlashcards } from '@/hooks/flashcard-store';
+import React, { useState } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  ScrollView,
+  TextInput,
+  Modal,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import { Plus, BookOpen } from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useFlashcards } from "@/hooks/flashcard-store";
+import { Colors } from "../constants/colors";
 
-const DECK_COLORS = ['#ef4444', '#f97316', '#eab308', '#22c55e', '#3b82f6', '#8b5cf6', '#ec4899'];
+const DECK_COLORS = [
+  Colors.red,
+  Colors.orange,
+  Colors.greenMint,
+  Colors.greenDark,
+  Colors.blue,
+  Colors.purple,
+  Colors.pink,
+];
 
 export default function DecksScreen() {
   const insets = useSafeAreaInsets();
   const { decks, cards, createDeck, addCard, isLoading } = useFlashcards();
   const [showCreateDeck, setShowCreateDeck] = useState(false);
   const [showAddCard, setShowAddCard] = useState<string | null>(null);
-  const [deckName, setDeckName] = useState('');
-  const [deckDescription, setDeckDescription] = useState('');
+  const [deckName, setDeckName] = useState("");
+  const [deckDescription, setDeckDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
-  const [cardFront, setCardFront] = useState('');
-  const [cardBack, setCardBack] = useState('');
+  const [cardFront, setCardFront] = useState("");
+  const [cardBack, setCardBack] = useState("");
 
   const handleCreateDeck = async () => {
     if (!deckName.trim()) {
@@ -24,8 +41,8 @@ export default function DecksScreen() {
     }
 
     await createDeck(deckName.trim(), deckDescription.trim(), selectedColor);
-    setDeckName('');
-    setDeckDescription('');
+    setDeckName("");
+    setDeckDescription("");
     setSelectedColor(DECK_COLORS[0]);
     setShowCreateDeck(false);
   };
@@ -37,23 +54,28 @@ export default function DecksScreen() {
 
     if (showAddCard) {
       await addCard(showAddCard, cardFront.trim(), cardBack.trim());
-      setCardFront('');
-      setCardBack('');
+      setCardFront("");
+      setCardBack("");
       setShowAddCard(null);
     }
   };
 
   const getDeckStats = (deckId: string) => {
-    const deckCards = cards.filter(card => card.deckId === deckId);
-    const newCards = deckCards.filter(card => card.repetitions === 0).length;
-    const dueCards = deckCards.filter(card => card.nextReview <= Date.now()).length;
+    const deckCards = cards.filter((card) => card.deckId === deckId);
+    const newCards = deckCards.filter((card) => card.repetitions === 0).length;
+    const dueCards = deckCards.filter(
+      (card) => card.nextReview <= Date.now()
+    ).length;
     return { total: deckCards.length, new: newCards, due: dueCards };
   };
 
   if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
-        <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+        <LinearGradient
+          colors={[Colors.blue, Colors.greenMint]}
+          style={styles.gradient}
+        >
           <Text style={styles.loadingText}>Loading...</Text>
         </LinearGradient>
       </View>
@@ -62,14 +84,17 @@ export default function DecksScreen() {
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+      <LinearGradient
+        colors={[Colors.blue, Colors.greenMint]}
+        style={styles.gradient}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>My Decks</Text>
           <TouchableOpacity
             style={styles.addButton}
             onPress={() => setShowCreateDeck(true)}
           >
-            <Plus size={24} color="#ffffff" />
+            <Plus size={24} color={Colors.white} />
           </TouchableOpacity>
         </View>
 
@@ -77,11 +102,16 @@ export default function DecksScreen() {
           {decks.map((deck) => {
             const stats = getDeckStats(deck.id);
             return (
-              <View key={deck.id} style={[styles.deckCard, { borderLeftColor: deck.color }]}>
+              <View
+                key={deck.id}
+                style={[styles.deckCard, { borderLeftColor: deck.color }]}
+              >
                 <View style={styles.deckHeader}>
                   <View style={styles.deckInfo}>
                     <Text style={styles.deckName}>{deck.name}</Text>
-                    <Text style={styles.deckDescription}>{deck.description}</Text>
+                    <Text style={styles.deckDescription}>
+                      {deck.description}
+                    </Text>
                   </View>
                   <BookOpen size={24} color={deck.color} />
                 </View>
@@ -92,21 +122,28 @@ export default function DecksScreen() {
                     <Text style={styles.statLabel}>Total</Text>
                   </View>
                   <View style={styles.statItem}>
-                    <Text style={[styles.statNumber, { color: '#3b82f6' }]}>{stats.new}</Text>
+                    <Text style={[styles.statNumber, { color: Colors.blue }]}>
+                      {stats.new}
+                    </Text>
                     <Text style={styles.statLabel}>New</Text>
                   </View>
                   <View style={styles.statItem}>
-                    <Text style={[styles.statNumber, { color: '#ef4444' }]}>{stats.due}</Text>
+                    <Text style={[styles.statNumber, { color: Colors.red }]}>
+                      {stats.due}
+                    </Text>
                     <Text style={styles.statLabel}>Due</Text>
                   </View>
                 </View>
 
                 <View style={styles.deckActions}>
                   <TouchableOpacity
-                    style={[styles.actionButton, { backgroundColor: deck.color }]}
+                    style={[
+                      styles.actionButton,
+                      { backgroundColor: deck.color },
+                    ]}
                     onPress={() => setShowAddCard(deck.id)}
                   >
-                    <Plus size={16} color="#ffffff" />
+                    <Plus size={16} color={Colors.white} />
                     <Text style={styles.actionButtonText}>Add Card</Text>
                   </TouchableOpacity>
                 </View>
@@ -116,7 +153,7 @@ export default function DecksScreen() {
 
           {decks.length === 0 && (
             <View style={styles.emptyState}>
-              <BookOpen size={64} color="#9ca3af" />
+              <BookOpen size={64} color={Colors.gray} />
               <Text style={styles.emptyTitle}>No decks yet</Text>
               <Text style={styles.emptyDescription}>
                 Create your first deck to start learning
@@ -130,7 +167,7 @@ export default function DecksScreen() {
           <View style={styles.modal}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Create New Deck</Text>
-              
+
               <TextInput
                 style={styles.input}
                 placeholder="Deck name"
@@ -138,7 +175,7 @@ export default function DecksScreen() {
                 onChangeText={setDeckName}
                 maxLength={50}
               />
-              
+
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Description (optional)"
@@ -186,7 +223,7 @@ export default function DecksScreen() {
           <View style={styles.modal}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Add New Card</Text>
-              
+
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Front of card (question/prompt)"
@@ -195,7 +232,7 @@ export default function DecksScreen() {
                 multiline
                 maxLength={500}
               />
-              
+
               <TextInput
                 style={[styles.input, styles.textArea]}
                 placeholder="Back of card (answer)"
@@ -235,20 +272,20 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 30,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: "bold",
+    color: Colors.white,
   },
   addButton: {
-    backgroundColor: 'rgba(255, 255, 255, 0.2)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 20,
     padding: 8,
   },
@@ -257,21 +294,21 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
   },
   deckCard: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.white,
     borderRadius: 16,
     padding: 20,
     marginBottom: 16,
     borderLeftWidth: 4,
     elevation: 4,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
     shadowRadius: 8,
   },
   deckHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 16,
   },
   deckInfo: {
@@ -279,122 +316,122 @@ const styles = StyleSheet.create({
   },
   deckName: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontWeight: "600",
+    color: "#1f2937",
     marginBottom: 4,
   },
   deckDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.gray,
   },
   deckStats: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
+    flexDirection: "row",
+    justifyContent: "space-around",
     marginBottom: 16,
     paddingVertical: 12,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
     borderRadius: 12,
   },
   statItem: {
-    alignItems: 'center',
+    alignItems: "center",
   },
   statNumber: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontWeight: "bold",
+    color: "#1f2937",
   },
   statLabel: {
     fontSize: 12,
-    color: '#6b7280',
+    color: Colors.gray,
     marginTop: 2,
   },
   deckActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 8,
   },
   actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
     gap: 4,
   },
   actionButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 14,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   emptyState: {
-    alignItems: 'center',
-    justifyContent: 'center',
+    alignItems: "center",
+    justifyContent: "center",
     paddingVertical: 60,
   },
   emptyTitle: {
     fontSize: 20,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: Colors.white,
     marginTop: 16,
   },
   emptyDescription: {
     fontSize: 14,
-    color: '#e5e7eb',
-    textAlign: 'center',
+    color: "#e5e7eb",
+    textAlign: "center",
     marginTop: 8,
   },
   loadingText: {
     fontSize: 18,
-    color: '#ffffff',
-    textAlign: 'center',
+    color: Colors.white,
+    textAlign: "center",
     marginTop: 100,
   },
   modal: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 24,
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontWeight: "bold",
+    color: "#1f2937",
     marginBottom: 20,
-    textAlign: 'center',
+    textAlign: "center",
   },
   input: {
     borderWidth: 1,
-    borderColor: '#d1d5db',
+    borderColor: "#d1d5db",
     borderRadius: 12,
     padding: 12,
     fontSize: 16,
     marginBottom: 16,
-    backgroundColor: '#f9fafb',
+    backgroundColor: "#f9fafb",
   },
   textArea: {
     height: 80,
-    textAlignVertical: 'top',
+    textAlignVertical: "top",
   },
   colorLabel: {
     fontSize: 16,
-    fontWeight: '500',
-    color: '#1f2937',
+    fontWeight: "500",
+    color: "#1f2937",
     marginBottom: 12,
   },
   colorPicker: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    justifyContent: "space-between",
     marginBottom: 24,
   },
   colorOption: {
@@ -402,35 +439,35 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 18,
     borderWidth: 3,
-    borderColor: 'transparent',
+    borderColor: "transparent",
   },
   selectedColor: {
-    borderColor: '#1f2937',
+    borderColor: "#1f2937",
   },
   modalActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   modalButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
   },
   createButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: Colors.blue,
   },
   cancelButtonText: {
-    color: '#6b7280',
+    color: Colors.gray,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   createButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });

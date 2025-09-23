@@ -1,14 +1,27 @@
-import React from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal } from 'react-native';
-import { LinearGradient } from 'expo-linear-gradient';
-import { Settings as SettingsIcon, Trash2, Download, Upload, Info } from 'lucide-react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
-
+import React from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  Modal,
+} from "react-native";
+import { LinearGradient } from "expo-linear-gradient";
+import {
+  Settings as SettingsIcon,
+  Trash2,
+  Download,
+  Upload,
+  Info,
+} from "lucide-react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Colors } from "../constants/colors";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
   const [showClearModal, setShowClearModal] = React.useState(false);
-  
+
   const handleClearData = () => {
     setShowClearModal(true);
   };
@@ -22,14 +35,17 @@ export default function SettingsScreen() {
   };
 
   const [showAboutModal, setShowAboutModal] = React.useState(false);
-  
+
   const showAbout = () => {
     setShowAboutModal(true);
   };
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
-      <LinearGradient colors={['#667eea', '#764ba2']} style={styles.gradient}>
+      <LinearGradient
+        colors={[Colors.greenMint, Colors.blue]}
+        style={styles.gradient}
+      >
         <View style={styles.header}>
           <Text style={styles.title}>Settings</Text>
         </View>
@@ -37,39 +53,63 @@ export default function SettingsScreen() {
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Data Management</Text>
-            
-            <TouchableOpacity style={styles.settingItem} onPress={handleExportData}>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleExportData}
+            >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: '#22c55e' }]}>
-                  <Download size={20} color="#ffffff" />
+                <View
+                  style={[
+                    styles.settingIcon,
+                    { backgroundColor: Colors.greenDark },
+                  ]}
+                >
+                  <Download size={20} color={Colors.white} />
                 </View>
                 <View>
                   <Text style={styles.settingTitle}>Export Data</Text>
-                  <Text style={styles.settingDescription}>Backup your flashcards and progress</Text>
+                  <Text style={styles.settingDescription}>
+                    Backup your flashcards and progress
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingItem} onPress={handleImportData}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleImportData}
+            >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: '#3b82f6' }]}>
-                  <Upload size={20} color="#ffffff" />
+                <View
+                  style={[styles.settingIcon, { backgroundColor: Colors.blue }]}
+                >
+                  <Upload size={20} color={Colors.white} />
                 </View>
                 <View>
                   <Text style={styles.settingTitle}>Import Data</Text>
-                  <Text style={styles.settingDescription}>Restore from a backup file</Text>
+                  <Text style={styles.settingDescription}>
+                    Restore from a backup file
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
 
-            <TouchableOpacity style={styles.settingItem} onPress={handleClearData}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleClearData}
+            >
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: '#ef4444' }]}>
-                  <Trash2 size={20} color="#ffffff" />
+                <View
+                  style={[styles.settingIcon, { backgroundColor: Colors.red }]}
+                >
+                  <Trash2 size={20} color={Colors.white} />
                 </View>
                 <View>
                   <Text style={styles.settingTitle}>Clear All Data</Text>
-                  <Text style={styles.settingDescription}>Delete all decks and progress</Text>
+                  <Text style={styles.settingDescription}>
+                    Delete all decks and progress
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -77,27 +117,41 @@ export default function SettingsScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Study Settings</Text>
-            
+
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: '#8b5cf6' }]}>
-                  <SettingsIcon size={20} color="#ffffff" />
+                <View
+                  style={[
+                    styles.settingIcon,
+                    { backgroundColor: Colors.purple },
+                  ]}
+                >
+                  <SettingsIcon size={20} color={Colors.white} />
                 </View>
                 <View>
                   <Text style={styles.settingTitle}>Daily New Cards</Text>
-                  <Text style={styles.settingDescription}>Maximum new cards per day: 10</Text>
+                  <Text style={styles.settingDescription}>
+                    Maximum new cards per day: 10
+                  </Text>
                 </View>
               </View>
             </View>
 
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: '#f59e0b' }]}>
-                  <SettingsIcon size={20} color="#ffffff" />
+                <View
+                  style={[
+                    styles.settingIcon,
+                    { backgroundColor: Colors.orange },
+                  ]}
+                >
+                  <SettingsIcon size={20} color={Colors.white} />
                 </View>
                 <View>
                   <Text style={styles.settingTitle}>Review Limit</Text>
-                  <Text style={styles.settingDescription}>Maximum reviews per day: Unlimited</Text>
+                  <Text style={styles.settingDescription}>
+                    Maximum reviews per day: Unlimited
+                  </Text>
                 </View>
               </View>
             </View>
@@ -105,15 +159,19 @@ export default function SettingsScreen() {
 
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>About</Text>
-            
+
             <TouchableOpacity style={styles.settingItem} onPress={showAbout}>
               <View style={styles.settingLeft}>
-                <View style={[styles.settingIcon, { backgroundColor: '#6b7280' }]}>
-                  <Info size={20} color="#ffffff" />
+                <View
+                  style={[styles.settingIcon, { backgroundColor: Colors.gray }]}
+                >
+                  <Info size={20} color={Colors.white} />
                 </View>
                 <View>
                   <Text style={styles.settingTitle}>About FlashLearn</Text>
-                  <Text style={styles.settingDescription}>Version and app information</Text>
+                  <Text style={styles.settingDescription}>
+                    Version and app information
+                  </Text>
                 </View>
               </View>
             </TouchableOpacity>
@@ -122,38 +180,65 @@ export default function SettingsScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>How Spaced Repetition Works</Text>
             <Text style={styles.infoText}>
-              FlashLearn uses a spaced repetition algorithm to optimize your learning. Cards you find difficult will appear more frequently, while cards you know well will appear less often. This helps you focus on what you need to learn most.
+              FlashLearn uses a spaced repetition algorithm to optimize your
+              learning. Cards you find difficult will appear more frequently,
+              while cards you know well will appear less often. This helps you
+              focus on what you need to learn most.
             </Text>
-            
+
             <View style={styles.difficultyGuide}>
               <Text style={styles.guideTitle}>Rating Guide:</Text>
               <View style={styles.guideItem}>
-                <View style={[styles.guideDot, { backgroundColor: '#ef4444' }]} />
-                <Text style={styles.guideText}><Text style={styles.guideBold}>Again</Text> - You did not remember</Text>
+                <View
+                  style={[styles.guideDot, { backgroundColor: Colors.red }]}
+                />
+                <Text style={styles.guideText}>
+                  <Text style={styles.guideBold}>Again</Text> - You did not
+                  remember
+                </Text>
               </View>
               <View style={styles.guideItem}>
-                <View style={[styles.guideDot, { backgroundColor: '#f97316' }]} />
-                <Text style={styles.guideText}><Text style={styles.guideBold}>Hard</Text> - You barely remembered</Text>
+                <View
+                  style={[styles.guideDot, { backgroundColor: Colors.orange }]}
+                />
+                <Text style={styles.guideText}>
+                  <Text style={styles.guideBold}>Hard</Text> - You barely
+                  remembered
+                </Text>
               </View>
               <View style={styles.guideItem}>
-                <View style={[styles.guideDot, { backgroundColor: '#22c55e' }]} />
-                <Text style={styles.guideText}><Text style={styles.guideBold}>Good</Text> - You remembered correctly</Text>
+                <View
+                  style={[
+                    styles.guideDot,
+                    { backgroundColor: Colors.greenDark },
+                  ]}
+                />
+                <Text style={styles.guideText}>
+                  <Text style={styles.guideBold}>Good</Text> - You remembered
+                  correctly
+                </Text>
               </View>
               <View style={styles.guideItem}>
-                <View style={[styles.guideDot, { backgroundColor: '#3b82f6' }]} />
-                <Text style={styles.guideText}><Text style={styles.guideBold}>Easy</Text> - You remembered easily</Text>
+                <View
+                  style={[styles.guideDot, { backgroundColor: Colors.blue }]}
+                />
+                <Text style={styles.guideText}>
+                  <Text style={styles.guideBold}>Easy</Text> - You remembered
+                  easily
+                </Text>
               </View>
             </View>
           </View>
         </ScrollView>
-        
+
         {/* Clear Data Modal */}
         <Modal visible={showClearModal} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Clear All Data</Text>
               <Text style={styles.modalText}>
-                This will permanently delete all your decks, cards, and progress. This action cannot be undone.
+                This will permanently delete all your decks, cards, and
+                progress. This action cannot be undone.
               </Text>
               <View style={styles.modalActions}>
                 <TouchableOpacity
@@ -175,14 +260,15 @@ export default function SettingsScreen() {
             </View>
           </View>
         </Modal>
-        
+
         {/* About Modal */}
         <Modal visible={showAboutModal} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>About FlashLearn</Text>
               <Text style={styles.modalText}>
-                FlashLearn is a spaced repetition flashcard app designed to help you learn efficiently.
+                FlashLearn is a spaced repetition flashcard app designed to help
+                you learn efficiently.
                 {"\n\n"}Version 1.0.0
                 {"\n\n"}Built with React Native and Expo
               </Text>
@@ -209,13 +295,13 @@ const styles = StyleSheet.create({
   },
   header: {
     paddingHorizontal: 20,
-    paddingTop: 20,
-    paddingBottom: 10,
+    paddingTop: 30,
+    paddingBottom: 20,
   },
   title: {
     fontSize: 28,
-    fontWeight: 'bold',
-    color: '#ffffff',
+    fontWeight: "bold",
+    color: Colors.white,
   },
   content: {
     flex: 1,
@@ -226,58 +312,58 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: Colors.white,
     marginBottom: 16,
   },
   settingItem: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.white,
     borderRadius: 12,
     padding: 16,
     marginBottom: 8,
     elevation: 2,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.1,
     shadowRadius: 4,
   },
   settingLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
   },
   settingIcon: {
     width: 40,
     height: 40,
     borderRadius: 20,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
     marginRight: 12,
   },
   settingTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#1f2937',
+    fontWeight: "600",
+    color: "#1f2937",
     marginBottom: 2,
   },
   settingDescription: {
     fontSize: 14,
-    color: '#6b7280',
+    color: Colors.gray,
   },
   infoCard: {
-    backgroundColor: 'rgba(255, 255, 255, 0.1)',
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
     borderRadius: 16,
     padding: 20,
     marginBottom: 20,
   },
   infoTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: Colors.white,
     marginBottom: 12,
   },
   infoText: {
     fontSize: 14,
-    color: '#e5e7eb',
+    color: Colors.white,
     lineHeight: 20,
     marginBottom: 16,
   },
@@ -286,13 +372,13 @@ const styles = StyleSheet.create({
   },
   guideTitle: {
     fontSize: 16,
-    fontWeight: '600',
-    color: '#ffffff',
+    fontWeight: "600",
+    color: Colors.white,
     marginBottom: 8,
   },
   guideItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     gap: 8,
   },
   guideDot: {
@@ -302,71 +388,71 @@ const styles = StyleSheet.create({
   },
   guideText: {
     fontSize: 14,
-    color: '#e5e7eb',
+    color: Colors.white,
   },
   guideBold: {
-    fontWeight: '600',
+    fontWeight: "600",
   },
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
     padding: 20,
   },
   modalContent: {
-    backgroundColor: '#ffffff',
+    backgroundColor: Colors.white,
     borderRadius: 20,
     padding: 24,
-    width: '100%',
+    width: "100%",
     maxWidth: 400,
   },
   modalTitle: {
     fontSize: 20,
-    fontWeight: 'bold',
-    color: '#1f2937',
+    fontWeight: "bold",
+    color: "#1f2937",
     marginBottom: 16,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modalText: {
     fontSize: 16,
-    color: '#6b7280',
+    color: Colors.gray,
     lineHeight: 24,
     marginBottom: 24,
-    textAlign: 'center',
+    textAlign: "center",
   },
   modalActions: {
-    flexDirection: 'row',
+    flexDirection: "row",
     gap: 12,
   },
   modalButton: {
     flex: 1,
     paddingVertical: 12,
     borderRadius: 12,
-    alignItems: 'center',
+    alignItems: "center",
   },
   cancelButton: {
-    backgroundColor: '#f3f4f6',
+    backgroundColor: "#f3f4f6",
   },
   destructiveButton: {
-    backgroundColor: '#ef4444',
+    backgroundColor: Colors.red,
   },
   primaryButton: {
-    backgroundColor: '#6366f1',
+    backgroundColor: Colors.blue,
   },
   cancelButtonText: {
-    color: '#6b7280',
+    color: Colors.gray,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   destructiveButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
   primaryButtonText: {
-    color: '#ffffff',
+    color: Colors.white,
     fontSize: 16,
-    fontWeight: '500',
+    fontWeight: "500",
   },
 });
