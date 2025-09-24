@@ -85,7 +85,7 @@ export default function DecksScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
-        colors={[Colors.blue, Colors.greenMint]}
+        colors={[Colors.greenMint, Colors.mintAccent]}
         style={styles.gradient}
       >
         <View style={styles.header}>

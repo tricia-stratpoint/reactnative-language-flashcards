@@ -49,7 +49,7 @@ export default function AchievementsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
-        colors={[Colors.pink, Colors.purple]}
+        colors={[Colors.greenMint, Colors.blue]}
         style={styles.gradient}
       >
         <View style={styles.header}>

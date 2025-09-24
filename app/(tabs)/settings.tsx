@@ -43,7 +43,7 @@ export default function SettingsScreen() {
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
-        colors={[Colors.greenMint, Colors.blue]}
+        colors={[Colors.blue, Colors.greenMint, Colors.greenDark]}
         style={styles.gradient}
       >
         <View style={styles.header}>
