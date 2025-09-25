@@ -1,12 +1,13 @@
 import { Tabs } from "expo-router";
 import { BookOpen, BarChart3, Trophy, Settings } from "lucide-react-native";
 import React from "react";
+import { Colors } from "../constants/colors";
 
 export default function TabLayout() {
   return (
     <Tabs
       screenOptions={{
-        tabBarActiveTintColor: "#6366f1",
+        tabBarActiveTintColor: Colors.blue,
         tabBarInactiveTintColor: "#9ca3af",
         headerShown: false,
         tabBarStyle: {
@@ -25,14 +26,18 @@ export default function TabLayout() {
         name="index"
         options={{
           title: "Learn",
-          tabBarIcon: ({ color, size }) => <BookOpen color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <BookOpen color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
         name="decks"
         options={{
           title: "Decks",
-          tabBarIcon: ({ color, size }) => <BarChart3 color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <BarChart3 color={color} size={size} />
+          ),
         }}
       />
       <Tabs.Screen
@@ -46,7 +51,9 @@ export default function TabLayout() {
         name="settings"
         options={{
           title: "Settings",
-          tabBarIcon: ({ color, size }) => <Settings color={color} size={size} />,
+          tabBarIcon: ({ color, size }) => (
+            <Settings color={color} size={size} />
+          ),
         }}
       />
     </Tabs>
