@@ -1,5 +1,12 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, TouchableOpacity, Image } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  Image,
+  ScrollView,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Play, BarChart3 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -129,58 +136,64 @@ export default function StudyScreen() {
         colors={[Colors.white, Colors.mintAccent]}
         style={styles.gradient}
       >
-        <View style={styles.content}>
-          <Image
-            source={require("../../assets/images/pocketlingo-logo.png")}
-            style={styles.logo}
-            resizeMode="contain"
-          />
-          <Text style={styles.title}>Ready to Learn?</Text>
-          <Text style={styles.subtitle}>
-            Choose a deck to begin your learning session
-          </Text>
+        <Image
+          source={require("../../assets/images/pocketlingo-logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+        />
+        <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.content}>
+            <Text style={styles.title}>Ready to Learn?</Text>
+            <Text style={styles.subtitle}>
+              Choose a deck to begin your learning session
+            </Text>
 
-          <View style={styles.decksContainer}>
-            {decks.map((deck) => {
-              const dueCards = getDueCards(deck.id);
-              const newCards = getNewCards(deck.id);
-              const totalCards =
-                dueCards.length + Math.min(newCards.length, 10);
+            <View style={styles.decksContainer}>
+              {decks.map((deck) => {
+                const dueCards = getDueCards(deck.id);
+                const newCards = getNewCards(deck.id);
+                const totalCards =
+                  dueCards.length + Math.min(newCards.length, 10);
 
-              // individual deck card
-              return (
-                <TouchableOpacity
-                  key={deck.id}
-                  style={[styles.deckCard, { backgroundColor: deck.color }]}
-                  onPress={() => startStudySession(deck.id)}
-                  disabled={totalCards === 0}
-                >
-                  <View style={styles.deckHeader}>
-                    <Text style={styles.deckName}>{deck.name}</Text>
-                    <Play size={20} color={Colors.blue} />
-                  </View>
-                  <Text style={styles.deckDescription}>{deck.description}</Text>
-                  <View style={styles.deckStats}>
-                    <View style={styles.statItem}>
-                      <BarChart3 size={16} color={Colors.gray} />
-                      <Text style={styles.statText}>
-                        {totalCards} cards to study
-                      </Text>
+                // individual deck card
+                return (
+                  <TouchableOpacity
+                    key={deck.id}
+                    style={[styles.deckCard, { backgroundColor: deck.color }]}
+                    onPress={() => startStudySession(deck.id)}
+                    disabled={totalCards === 0}
+                  >
+                    <View style={styles.deckHeader}>
+                      <Text style={styles.deckName}>{deck.name}</Text>
+                      <Play size={20} color={Colors.white} />
                     </View>
-                    {dueCards.length > 0 && (
-                      <Text style={styles.dueText}>{dueCards.length} due</Text>
-                    )}
-                    {newCards.length > 0 && (
-                      <Text style={styles.newText}>
-                        {Math.min(newCards.length, 10)} new
-                      </Text>
-                    )}
-                  </View>
-                </TouchableOpacity>
-              );
-            })}
+                    <Text style={styles.deckDescription}>
+                      {deck.description}
+                    </Text>
+                    <View style={styles.deckStats}>
+                      <View style={styles.statItem}>
+                        <BarChart3 size={16} color={Colors.white} />
+                        <Text style={styles.statText}>
+                          {totalCards} cards to study
+                        </Text>
+                      </View>
+                      {dueCards.length > 0 && (
+                        <Text style={styles.dueText}>
+                          {dueCards.length} due
+                        </Text>
+                      )}
+                      {newCards.length > 0 && (
+                        <Text style={styles.newText}>
+                          {Math.min(newCards.length, 10)} new
+                        </Text>
+                      )}
+                    </View>
+                  </TouchableOpacity>
+                );
+              })}
+            </View>
           </View>
-        </View>
+        </ScrollView>
       </LinearGradient>
     </View>
   );
@@ -195,7 +208,7 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
-    padding: 20,
+    paddingHorizontal: 18,
   },
   title: {
     fontSize: 32,
@@ -329,5 +342,6 @@ const styles = StyleSheet.create({
     height: 120,
     alignSelf: "center",
     shadowColor: "transparent",
+    marginTop: 20,
   },
 });
