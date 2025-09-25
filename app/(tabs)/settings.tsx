@@ -168,7 +168,7 @@ export default function SettingsScreen() {
                   <Info size={20} color={Colors.white} />
                 </View>
                 <View>
-                  <Text style={styles.settingTitle}>About FlashLearn</Text>
+                  <Text style={styles.settingTitle}>About PocketLingo</Text>
                   <Text style={styles.settingDescription}>
                     Version and app information
                   </Text>
@@ -180,7 +180,7 @@ export default function SettingsScreen() {
           <View style={styles.infoCard}>
             <Text style={styles.infoTitle}>How Spaced Repetition Works</Text>
             <Text style={styles.infoText}>
-              FlashLearn uses a spaced repetition algorithm to optimize your
+              PocketLingo uses a spaced repetition algorithm to optimize your
               learning. Cards you find difficult will appear more frequently,
               while cards you know well will appear less often. This helps you
               focus on what you need to learn most.
@@ -265,10 +265,10 @@ export default function SettingsScreen() {
         <Modal visible={showAboutModal} transparent animationType="fade">
           <View style={styles.modalOverlay}>
             <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>About FlashLearn</Text>
+              <Text style={styles.modalTitle}>About PocketLingo</Text>
               <Text style={styles.modalText}>
-                FlashLearn is a spaced repetition flashcard app designed to help
-                you learn efficiently.
+                PocketLingo is a spaced repetition flashcard app designed to
+                help you learn efficiently.
                 {"\n\n"}Version 1.0.0
                 {"\n\n"}Built with React Native and Expo
               </Text>
