@@ -5,6 +5,7 @@ import IndexScreen from "../screens/index";
 import DecksScreen from "../screens/decks";
 import AchievementsScreen from "../screens/achievements";
 import SettingsScreen from "../screens/settings";
+import NotFoundScreen from "../+not-found";
 import { Colors } from "../constants/colors";
 
 const Tab = createBottomTabNavigator();
@@ -65,6 +66,11 @@ export default function AppNavigator() {
             <Settings color={color} size={size} />
           ),
         }}
+      />
+      <Tab.Screen
+        name="NotFound"
+        component={NotFoundScreen}
+        options={{ title: "Oops!" }}
       />
     </Tab.Navigator>
   );
