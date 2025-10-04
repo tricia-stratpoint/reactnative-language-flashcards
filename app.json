@@ -27,14 +27,7 @@
     "web": {
       "favicon": "./assets/images/pocketlingo-icon.png"
     },
-    "plugins": [
-      [
-        "expo-router",
-        {
-          "origin": "https://rork.com/"
-        }
-      ]
-    ],
+    "plugins": [],
     "experiments": {
       "typedRoutes": true
     }
