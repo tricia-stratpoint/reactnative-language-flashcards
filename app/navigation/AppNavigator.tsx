@@ -1,16 +1,21 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { BookOpen, BarChart3, Trophy, Settings } from "lucide-react-native";
+
 import IndexScreen from "../screens/index";
 import DecksScreen from "../screens/decks";
 import AchievementsScreen from "../screens/achievements";
 import SettingsScreen from "../screens/settings";
-import NotFoundScreen from "../+not-found";
+import LoginScreen from "../screens/login";
+import SignUpScreen from "../screens/signup";
 import { Colors } from "../constants/colors";
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
-export default function AppNavigator() {
+// Bottom Nav
+function MainTabs() {
   return (
     <Tab.Navigator
       screenOptions={{
@@ -68,5 +73,16 @@ export default function AppNavigator() {
         }}
       />
     </Tab.Navigator>
+  );
+}
+
+// Root Navigator
+export default function AppNavigator() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="Login" component={LoginScreen} />
+      <Stack.Screen name="SignUp" component={SignUpScreen} />
+      <Stack.Screen name="MainTabs" component={MainTabs} />
+    </Stack.Navigator>
   );
 }
