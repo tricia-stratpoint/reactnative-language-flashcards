@@ -67,11 +67,6 @@ export default function AppNavigator() {
           ),
         }}
       />
-      <Tab.Screen
-        name="NotFound"
-        component={NotFoundScreen}
-        options={{ title: "Oops!" }}
-      />
     </Tab.Navigator>
   );
 }
