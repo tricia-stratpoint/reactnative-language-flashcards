@@ -16,8 +16,27 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
 
   const handleSignUp = async () => {
+    setError("");
+
+    if (!username.trim() || !email.trim() || !password.trim()) {
+      setError("Please fill in all fields.");
+      return;
+    }
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return;
+    }
+
     try {
       const userCredential = await createUserWithEmailAndPassword(
         auth,
@@ -27,8 +46,9 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
       await updateProfile(userCredential.user, { displayName: username });
       console.log("User registered:", userCredential.user);
       navigation.replace("Login");
-    } catch (error) {
+    } catch (error: any) {
       console.log("Sign up error:", error);
+      setError(error.message || "Failed to sign up. Please try again.");
     }
   };
 
@@ -38,6 +58,8 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
         source={require("../../assets/images/pocketlingo-logo.png")}
         style={styles.logo}
       />
+
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       <TextInput
         style={styles.input}
@@ -77,13 +99,7 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
 
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "center",
-          marginTop: 10,
-        }}
-      >
+      <View style={styles.linkContainer}>
         <Text style={styles.linkText}>Already have an account? </Text>
         <TouchableOpacity onPress={() => navigation.navigate("Login")}>
           <Text style={styles.link}>Log in</Text>
@@ -99,15 +115,12 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.mintAccent,
     justifyContent: "center",
     paddingHorizontal: 45,
-    paddingVertical: 20,
   },
   logo: {
     width: 300,
     height: 120,
     marginBottom: 40,
     alignSelf: "center",
-    shadowColor: "transparent",
-    marginTop: 20,
   },
   input: {
     width: "100%",
@@ -139,7 +152,6 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     fontWeight: "600",
   },
-
   button: {
     width: "100%",
     backgroundColor: Colors.blue,
@@ -152,15 +164,21 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: "bold",
   },
+  errorText: {
+    color: Colors.red,
+    textAlign: "center",
+    marginBottom: 10,
+  },
+  linkContainer: {
+    flexDirection: "row",
+    justifyContent: "center",
+  },
   linkText: {
     color: Colors.gray,
     fontWeight: "600",
-    textAlign: "center",
-    marginRight: 5,
   },
   link: {
     color: Colors.tealDark,
     fontWeight: "600",
-    textAlign: "center",
   },
 });

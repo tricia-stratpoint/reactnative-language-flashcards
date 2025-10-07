@@ -6,6 +6,7 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
+  Alert,
 } from "react-native";
 import { Colors } from "../constants/colors";
 import { auth } from "@/firebaseConfig";
@@ -15,8 +16,29 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [error, setError] = useState("");
+
+  const validateInputs = () => {
+    if (!email.trim() || !password.trim()) {
+      setError("Please fill in all fields.");
+      return false;
+    }
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!emailRegex.test(email)) {
+      setError("Please enter a valid email address.");
+      return false;
+    }
+    if (password.length < 6) {
+      setError("Password must be at least 6 characters long.");
+      return false;
+    }
+    setError("");
+    return true;
+  };
 
   const handleLogin = async () => {
+    if (!validateInputs()) return;
+
     try {
       const userCredential = await signInWithEmailAndPassword(
         auth,
@@ -25,8 +47,15 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       );
       console.log("User logged in:", userCredential.user);
       navigation.replace("MainTabs");
-    } catch (error) {
+    } catch (error: any) {
       console.log("Login error:", error);
+      if (error.code === "auth/user-not-found") {
+        setError("No account found with this email.");
+      } else if (error.code === "auth/wrong-password") {
+        setError("Incorrect password. Please try again.");
+      } else {
+        setError("Login failed. Please check your credentials.");
+      }
     }
   };
 
@@ -41,7 +70,10 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         style={styles.input}
         placeholder="Email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          setEmail(text);
+          setError("");
+        }}
         keyboardType="email-address"
         autoCapitalize="none"
       />
@@ -51,7 +83,10 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
           style={[styles.input, { flex: 1, marginBottom: 0 }]}
           placeholder="Password"
           value={password}
-          onChangeText={setPassword}
+          onChangeText={(text) => {
+            setPassword(text);
+            setError("");
+          }}
           secureTextEntry={!showPassword}
         />
         <TouchableOpacity
@@ -64,17 +99,13 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         </TouchableOpacity>
       </View>
 
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "center",
-          marginTop: 10,
-        }}
-      >
+      <View style={styles.footer}>
         <Text style={styles.linkText}>Don&apos;t have an account yet? </Text>
         <TouchableOpacity onPress={() => navigation.navigate("SignUp")}>
           <Text style={styles.link}>Sign Up</Text>
@@ -134,6 +165,11 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontWeight: "bold",
   },
+  footer: {
+    flexDirection: "row",
+    justifyContent: "center",
+    marginTop: 10,
+  },
   linkText: {
     color: Colors.white,
     fontWeight: "600",
@@ -144,5 +180,11 @@ const styles = StyleSheet.create({
     color: Colors.tealDark,
     fontWeight: "600",
     textAlign: "center",
+  },
+  errorText: {
+    color: Colors.red,
+    textAlign: "center",
+    marginBottom: 10,
+    fontWeight: "600",
   },
 });
