@@ -8,11 +8,27 @@ import {
   StyleSheet,
 } from "react-native";
 import { Colors } from "../constants/colors";
+import { auth } from "@/firebaseConfig";
+import { signInWithEmailAndPassword } from "firebase/auth";
 
 export default function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+
+  const handleLogin = async () => {
+    try {
+      const userCredential = await signInWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      console.log("User logged in:", userCredential.user);
+      navigation.replace("MainTabs");
+    } catch (error) {
+      console.log("Login error:", error);
+    }
+  };
 
   return (
     <View style={styles.container}>
@@ -48,7 +64,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.button}>
+      <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 

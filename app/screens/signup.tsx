@@ -8,6 +8,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { Colors } from "../constants/colors";
+import { auth } from "@/firebaseConfig";
+import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 
 export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [username, setUsername] = useState("");
@@ -15,9 +17,19 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
 
-  const handleSignUp = () => {
-    // TODO: Integrate Firebase Auth (createUserWithEmailAndPassword + save username)
-    console.log("Sign up with:", { username, email, password });
+  const handleSignUp = async () => {
+    try {
+      const userCredential = await createUserWithEmailAndPassword(
+        auth,
+        email,
+        password
+      );
+      await updateProfile(userCredential.user, { displayName: username });
+      console.log("User registered:", userCredential.user);
+      navigation.replace("Login");
+    } catch (error) {
+      console.log("Sign up error:", error);
+    }
   };
 
   return (

@@ -6,13 +6,21 @@ import * as SplashScreen from "expo-splash-screen";
 import { FlashcardProvider } from "./hooks/flashcard-store";
 import AppNavigator from "./app/navigation/AppNavigator";
 import { NavigationContainer } from "@react-navigation/native";
+import { onAuthStateChanged } from "firebase/auth";
+import { auth } from "./firebaseConfig";
 
 const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
 
 export default function App() {
   useEffect(() => {
+    const unsubscribe = onAuthStateChanged(auth, (user) => {
+      console.log("Auth state changed:", user);
+    });
+
     SplashScreen.hideAsync();
+
+    return unsubscribe;
   }, []);
 
   return (
