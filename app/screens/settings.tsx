@@ -14,28 +14,36 @@ import {
   Download,
   Upload,
   Info,
+  LogOut,
 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
+import { signOut } from "firebase/auth";
+import { auth } from "@/firebaseConfig";
+import { useNavigation } from "@react-navigation/native";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation();
   const [showClearModal, setShowClearModal] = React.useState(false);
-
-  const handleClearData = () => {
-    setShowClearModal(true);
-  };
-
-  const handleExportData = () => {
-    // Export feature placeholder
-  };
-
-  const handleImportData = () => {
-    // Import feature placeholder
-  };
-
   const [showAboutModal, setShowAboutModal] = React.useState(false);
 
+  const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" as never }],
+      });
+      console.log("User logged out");
+    } catch (error) {
+      console.log("Logout error:", error);
+    }
+  };
+
+  const handleClearData = () => setShowClearModal(true);
+  const handleExportData = () => {};
+  const handleImportData = () => {};
   const showAbout = () => {
     setShowAboutModal(true);
   };
@@ -51,6 +59,26 @@ export default function SettingsScreen() {
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
+          <View style={styles.section}>
+            <Text style={styles.sectionTitle}>Account</Text>
+
+            <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
+              <View style={styles.settingLeft}>
+                <View
+                  style={[styles.settingIcon, { backgroundColor: Colors.red }]}
+                >
+                  <LogOut size={20} color={Colors.white} />
+                </View>
+                <View>
+                  <Text style={styles.settingTitle}>Logout</Text>
+                  <Text style={styles.settingDescription}>
+                    Sign out of your account
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+          </View>
+
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Data Management</Text>
 
