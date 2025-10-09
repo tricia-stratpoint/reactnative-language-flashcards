@@ -21,19 +21,11 @@ async function uploadSpanishData() {
 
     let uploadedCount = 0;
     for (const card of jsonData) {
-      const snapshot = await flashcardsCollection
-        .where("word", "==", card.word)
-        .limit(1)
-        .get();
+      const docId = card.word;
 
-      if (!snapshot.empty) {
-        console.log(`Skipped (already exists): ${card.word}`);
-        continue;
-      }
-
-      await flashcardsCollection.add(card);
+      await flashcardsCollection.doc(docId).set(card, { merge: true });
       uploadedCount++;
-      console.log(`Uploaded: ${card.word}`);
+      console.log(`Uploaded/Updated: ${card.word}`);
     }
 
     console.log(`Uploaded ${uploadedCount} new flashcards.`);
