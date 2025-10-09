@@ -9,7 +9,7 @@ import {
   Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Plus, BookOpen } from "lucide-react-native";
+import { Plus, BookOpen, BookAlert } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useFlashcards } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
@@ -153,7 +153,7 @@ export default function DecksScreen() {
 
           {decks.length === 0 && (
             <View style={styles.emptyState}>
-              <BookOpen size={64} color={Colors.gray} />
+              <BookAlert size={64} color={Colors.greenDark} />
               <Text style={styles.emptyTitle}>No decks yet</Text>
               <Text style={styles.emptyDescription}>
                 Create your first deck to start learning
@@ -368,14 +368,14 @@ const styles = StyleSheet.create({
     paddingVertical: 60,
   },
   emptyTitle: {
-    fontSize: 20,
-    fontWeight: "600",
-    color: Colors.white,
+    fontSize: 28,
+    fontWeight: "700",
+    color: Colors.greenDark,
     marginTop: 16,
   },
   emptyDescription: {
     fontSize: 14,
-    color: "#e5e7eb",
+    color: Colors.greenDark,
     textAlign: "center",
     marginTop: 8,
   },
