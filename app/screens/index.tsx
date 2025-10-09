@@ -14,6 +14,7 @@ import { useFlashcards } from "@/hooks/flashcard-store";
 import FlashcardComponent from "@/components/FlashcardComponent";
 import { Flashcard } from "@/types/flashcard";
 import { Colors } from "../constants/colors";
+import { auth } from "@/firebaseConfig";
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
@@ -23,6 +24,14 @@ export default function StudyScreen() {
   const [studyCards, setStudyCards] = useState<Flashcard[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [sessionStats, setSessionStats] = useState({ studied: 0, correct: 0 });
+  const [username, setUsername] = useState("");
+
+  useEffect(() => {
+    const user = auth.currentUser;
+    if (user && user.displayName) {
+      setUsername(user.displayName);
+    }
+  }, []);
 
   useEffect(() => {
     if (selectedDeck) {
@@ -143,6 +152,9 @@ export default function StudyScreen() {
         />
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           <View style={styles.content}>
+            <Text style={styles.greeting}>
+              Hello{username ? `, ${username}!` : "!"}
+            </Text>
             <Text style={styles.title}>Ready to Learn?</Text>
             <Text style={styles.subtitle}>
               Choose a deck to begin your learning session
@@ -229,15 +241,22 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 18,
   },
+  greeting: {
+    fontSize: 22,
+    fontWeight: "600",
+    color: Colors.blue,
+    textAlign: "center",
+    marginTop: 5,
+  },
   title: {
     fontSize: 32,
     fontWeight: "bold",
-    color: Colors.greenMint,
+    color: Colors.tealDark,
     textAlign: "center",
     marginTop: 5,
   },
   subtitle: {
-    fontSize: 16,
+    fontSize: 14,
     color: Colors.gray,
     textAlign: "center",
     marginTop: 8,
