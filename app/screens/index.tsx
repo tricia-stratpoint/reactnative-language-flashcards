@@ -149,48 +149,67 @@ export default function StudyScreen() {
             </Text>
 
             <View style={styles.decksContainer}>
-              {decks.map((deck) => {
-                const dueCards = getDueCards(deck.id);
-                const newCards = getNewCards(deck.id);
-                const totalCards =
-                  dueCards.length + Math.min(newCards.length, 10);
+              {decks.length === 0 ? (
+                <View style={styles.emptyPlaceholder}>
+                  <Image
+                    source={require("../../assets/images/empty-placeholder.png")}
+                    style={styles.emptyImage}
+                    resizeMode="contain"
+                  />{" "}
+                  <Text style={styles.emptyTitle}>No decks available yet</Text>
+                  <Text style={styles.emptySubtitle}>
+                    Add some decks or wait for new ones to appear.
+                  </Text>
+                </View>
+              ) : (
+                decks.map((deck) => {
+                  const dueCards = getDueCards(deck.id);
+                  const newCards = getNewCards(deck.id);
+                  const totalCards =
+                    dueCards.length + Math.min(newCards.length, 10);
 
-                // individual deck card
-                return (
-                  <TouchableOpacity
-                    key={deck.id}
-                    style={[styles.deckCard, { backgroundColor: deck.color }]}
-                    onPress={() => startStudySession(deck.id)}
-                    disabled={totalCards === 0}
-                  >
-                    <View style={styles.deckHeader}>
-                      <Text style={styles.deckName}>{deck.name}</Text>
-                      <Play size={20} color={Colors.white} />
-                    </View>
-                    <Text style={styles.deckDescription}>
-                      {deck.description}
-                    </Text>
-                    <View style={styles.deckStats}>
-                      <View style={styles.statItem}>
-                        <BarChart3 size={16} color={Colors.white} />
-                        <Text style={styles.statText}>
-                          {totalCards} cards to study
-                        </Text>
+                  return (
+                    <TouchableOpacity
+                      key={deck.id}
+                      style={[
+                        styles.deckCard,
+                        {
+                          backgroundColor: deck.color,
+                          opacity: totalCards === 0 ? 0.5 : 1,
+                        },
+                      ]}
+                      onPress={() => startStudySession(deck.id)}
+                      disabled={totalCards === 0}
+                    >
+                      <View style={styles.deckHeader}>
+                        <Text style={styles.deckName}>{deck.name}</Text>
+                        <Play size={20} color={Colors.white} />
                       </View>
-                      {dueCards.length > 0 && (
-                        <Text style={styles.dueText}>
-                          {dueCards.length} due
-                        </Text>
-                      )}
-                      {newCards.length > 0 && (
-                        <Text style={styles.newText}>
-                          {Math.min(newCards.length, 10)} new
-                        </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                );
-              })}
+                      <Text style={styles.deckDescription}>
+                        {deck.description}
+                      </Text>
+                      <View style={styles.deckStats}>
+                        <View style={styles.statItem}>
+                          <BarChart3 size={16} color={Colors.white} />
+                          <Text style={styles.statText}>
+                            {totalCards} cards to study
+                          </Text>
+                        </View>
+                        {dueCards.length > 0 && (
+                          <Text style={styles.dueText}>
+                            {dueCards.length} due
+                          </Text>
+                        )}
+                        {newCards.length > 0 && (
+                          <Text style={styles.newText}>
+                            {Math.min(newCards.length, 10)} new
+                          </Text>
+                        )}
+                      </View>
+                    </TouchableOpacity>
+                  );
+                })
+              )}
             </View>
           </View>
         </ScrollView>
@@ -343,5 +362,28 @@ const styles = StyleSheet.create({
     alignSelf: "center",
     shadowColor: "transparent",
     marginTop: 20,
+  },
+  emptyPlaceholder: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 40,
+  },
+  emptyImage: {
+    width: 150,
+    height: 150,
+  },
+  emptyTitle: {
+    fontSize: 26,
+    fontWeight: "700",
+    color: Colors.blue,
+    marginBottom: 10,
+  },
+  emptySubtitle: {
+    fontSize: 12,
+    fontWeight: "700",
+    color: Colors.blue,
+    textAlign: "center",
+    paddingHorizontal: 20,
   },
 });
