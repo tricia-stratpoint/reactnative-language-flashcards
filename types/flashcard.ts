@@ -9,7 +9,8 @@ export interface Flashcard {
   interval: number;
   easeFactor: number;
   repetitions: number;
-  difficulty: 'again' | 'hard' | 'good' | 'easy';
+  difficulty: "again" | "hard" | "good" | "easy";
+  wordFrequency?: number;
 }
 
 export interface Deck {
@@ -17,10 +18,6 @@ export interface Deck {
   name: string;
   description: string;
   color: string;
-  createdAt: number;
-  cardCount: number;
-  newCards: number;
-  reviewCards: number;
 }
 
 export interface StudySession {

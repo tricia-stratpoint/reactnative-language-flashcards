@@ -3,7 +3,6 @@ import { StyleSheet } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
-import { FlashcardProvider } from "./hooks/flashcard-store";
 import AppNavigator from "./app/navigation/AppNavigator";
 import { NavigationContainer } from "@react-navigation/native";
 import { onAuthStateChanged } from "firebase/auth";
@@ -25,13 +24,11 @@ export default function App() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <FlashcardProvider>
-        <GestureHandlerRootView style={styles.container}>
-          <NavigationContainer>
-            <AppNavigator />
-          </NavigationContainer>
-        </GestureHandlerRootView>
-      </FlashcardProvider>
+      <GestureHandlerRootView style={styles.container}>
+        <NavigationContainer>
+          <AppNavigator />
+        </NavigationContainer>
+      </GestureHandlerRootView>
     </QueryClientProvider>
   );
 }

@@ -10,47 +10,102 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Play, BarChart3 } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFlashcards } from "@/hooks/flashcard-store";
+import { Flashcard, Deck } from "@/types/flashcard";
 import FlashcardComponent from "@/components/FlashcardComponent";
-import { Flashcard } from "@/types/flashcard";
 import { Colors } from "../constants/colors";
-import { auth } from "@/firebaseConfig";
+import { auth, db } from "@/firebaseConfig";
+import { collection, getDocs } from "firebase/firestore";
 
-export default function StudyScreen() {
+export default function StudyScreen({ language = "spanish" }) {
   const insets = useSafeAreaInsets();
-  const { decks, getDueCards, getNewCards, updateCardAfterReview, isLoading } =
-    useFlashcards();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [studyCards, setStudyCards] = useState<Flashcard[]>([]);
+  const [decks, setDecks] = useState<Deck[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [sessionStats, setSessionStats] = useState({ studied: 0, correct: 0 });
   const [username, setUsername] = useState("");
+  const [loading, setLoading] = useState(true);
+  const [deckCardCounts, setDeckCardCounts] = useState<Record<string, number>>(
+    {}
+  );
+  const getDeckColor = (deck: Deck & { language?: string }) => {
+    if (deck.color) return deck.color;
+    if (deck.language === "spanish") return Colors.greenMint;
+    if (deck.language === "french") return Colors.blue;
+    return Colors.gray;
+  };
+
+  useEffect(() => {
+    const fetchAllDecks = async () => {
+      setLoading(true);
+      try {
+        const languages = ["spanish", "french"];
+        const allDecks: (Deck & { language: string })[] = [];
+        const allCounts: Record<string, number> = {};
+
+        for (const lang of languages) {
+          const decksSnap = await getDocs(
+            collection(db, `flashcards/${lang}/decks`)
+          );
+          const loadedDecks = decksSnap.docs.map(
+            (doc) =>
+              ({
+                id: doc.id,
+                language: lang,
+                ...doc.data(),
+              } as Deck & { language: string })
+          );
+
+          allDecks.push(...loadedDecks);
+
+          for (const deck of loadedDecks) {
+            const cardsSnap = await getDocs(
+              collection(db, `flashcards/${lang}/decks/${deck.id}/cards`)
+            );
+            allCounts[deck.id] = cardsSnap.size;
+          }
+        }
+
+        setDecks(allDecks);
+        setDeckCardCounts(allCounts);
+      } catch (err) {
+        console.error("Error loading decks:", err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchAllDecks();
+  }, []);
+
+  const fetchFlashcards = async (deckId: string) => {
+    const snapshot = await getDocs(
+      collection(db, `flashcards/${language}/decks/${deckId}/cards`)
+    );
+
+    const cards: Flashcard[] = snapshot.docs.map(
+      (doc) => ({ id: doc.id, ...doc.data() } as Flashcard)
+    );
+
+    setStudyCards(cards.slice(0, 10)); // limit to 10 cards
+  };
 
   useEffect(() => {
     const user = auth.currentUser;
-    if (user && user.displayName) {
-      setUsername(user.displayName);
-    }
+    if (user && user.displayName) setUsername(user.displayName);
   }, []);
 
   useEffect(() => {
     if (selectedDeck) {
-      const dueCards = getDueCards(selectedDeck);
-      const newCards = getNewCards(selectedDeck).slice(0, 10); // Limit new cards
-      const allCards = [...dueCards, ...newCards];
-      setStudyCards(allCards);
+      fetchFlashcards(selectedDeck);
       setCurrentCardIndex(0);
       setSessionStats({ studied: 0, correct: 0 });
     }
-  }, [selectedDeck, getDueCards, getNewCards]);
+  }, [selectedDeck]);
 
-  const handleCardSwipe = async (
-    difficulty: "again" | "hard" | "good" | "easy"
-  ) => {
+  const handleCardSwipe = (difficulty: "again" | "hard" | "good" | "easy") => {
     const currentCard = studyCards[currentCardIndex];
-    if (!currentCard || !difficulty?.trim()) return;
-
-    await updateCardAfterReview(currentCard.id, difficulty);
+    if (!currentCard) return;
 
     const isCorrect = difficulty === "good" || difficulty === "easy";
     setSessionStats((prev) => ({
@@ -70,7 +125,7 @@ export default function StudyScreen() {
     setSelectedDeck(deckId);
   };
 
-  if (isLoading) {
+  if (loading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <LinearGradient
@@ -151,78 +206,57 @@ export default function StudyScreen() {
           resizeMode="contain"
         />
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          <View style={styles.content}>
-            <Text style={styles.greeting}>
-              Hello{username ? `, ${username}!` : "!"}
-            </Text>
-            <Text style={styles.title}>Ready to Learn?</Text>
-            <Text style={styles.subtitle}>
-              Choose a deck to begin your learning session
-            </Text>
+          <Text style={styles.greeting}>
+            Hello{username ? `, ${username}!` : "!"}
+          </Text>
+          <Text style={styles.title}>Ready to Learn?</Text>
+          <Text style={styles.subtitle}>
+            Choose a deck to begin your learning session
+          </Text>
 
-            <View style={styles.decksContainer}>
-              {decks.length === 0 ? (
-                <View style={styles.emptyPlaceholder}>
-                  <Image
-                    source={require("../../assets/images/empty-placeholder.png")}
-                    style={styles.emptyImage}
-                    resizeMode="contain"
-                  />{" "}
-                  <Text style={styles.emptyTitle}>No decks available yet</Text>
-                  <Text style={styles.emptySubtitle}>
-                    Add some decks or wait for new ones to appear.
-                  </Text>
-                </View>
-              ) : (
-                decks.map((deck) => {
-                  const dueCards = getDueCards(deck.id);
-                  const newCards = getNewCards(deck.id);
-                  const totalCards =
-                    dueCards.length + Math.min(newCards.length, 10);
-
-                  return (
-                    <TouchableOpacity
-                      key={deck.id}
-                      style={[
-                        styles.deckCard,
-                        {
-                          backgroundColor: deck.color,
-                          opacity: totalCards === 0 ? 0.5 : 1,
-                        },
-                      ]}
-                      onPress={() => startStudySession(deck.id)}
-                      disabled={totalCards === 0}
-                    >
-                      <View style={styles.deckHeader}>
-                        <Text style={styles.deckName}>{deck.name}</Text>
-                        <Play size={20} color={Colors.white} />
-                      </View>
-                      <Text style={styles.deckDescription}>
-                        {deck.description}
+          <View style={styles.decksContainer}>
+            {decks.length === 0 ? (
+              <View style={styles.emptyPlaceholder}>
+                <Image
+                  source={require("../../assets/images/empty-placeholder.png")}
+                  style={styles.emptyImage}
+                  resizeMode="contain"
+                />
+                <Text style={styles.emptyTitle}>No decks available yet</Text>
+                <Text style={styles.emptySubtitle}>
+                  Add some decks or wait for new ones to appear.
+                </Text>
+              </View>
+            ) : (
+              decks.map((deck) => (
+                <TouchableOpacity
+                  key={deck.id}
+                  style={[
+                    styles.deckCard,
+                    {
+                      backgroundColor: getDeckColor(deck),
+                      opacity: (deckCardCounts[deck.id] || 0) === 0 ? 0.5 : 1,
+                    },
+                  ]}
+                  onPress={() => startStudySession(deck.id)}
+                  disabled={deckCardCounts[deck.id] === 0}
+                >
+                  <View style={styles.deckHeader}>
+                    <Text style={styles.deckName}>{deck.name}</Text>
+                    <Play size={20} color={Colors.white} />
+                  </View>
+                  <Text style={styles.deckDescription}>{deck.description}</Text>
+                  <View style={styles.deckStats}>
+                    <View style={styles.statItem}>
+                      <BarChart3 size={16} color={Colors.white} />
+                      <Text style={styles.statText}>
+                        {deckCardCounts[deck.id] || 0} cards to study
                       </Text>
-                      <View style={styles.deckStats}>
-                        <View style={styles.statItem}>
-                          <BarChart3 size={16} color={Colors.white} />
-                          <Text style={styles.statText}>
-                            {totalCards} cards to study
-                          </Text>
-                        </View>
-                        {dueCards.length > 0 && (
-                          <Text style={styles.dueText}>
-                            {dueCards.length} due
-                          </Text>
-                        )}
-                        {newCards.length > 0 && (
-                          <Text style={styles.newText}>
-                            {Math.min(newCards.length, 10)} new
-                          </Text>
-                        )}
-                      </View>
-                    </TouchableOpacity>
-                  );
-                })
-              )}
-            </View>
+                    </View>
+                  </View>
+                </TouchableOpacity>
+              ))
+            )}
           </View>
         </ScrollView>
       </LinearGradient>

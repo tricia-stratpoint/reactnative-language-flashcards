@@ -11,8 +11,9 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Plus, BookOpen, BookAlert } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFlashcards } from "@/hooks/flashcard-store";
+import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
+import { Flashcard, Deck } from "@/types/flashcard";
 
 const DECK_COLORS = [
   Colors.red,
@@ -26,7 +27,7 @@ const DECK_COLORS = [
 
 export default function DecksScreen() {
   const insets = useSafeAreaInsets();
-  const { decks, cards, createDeck, addCard, isLoading } = useFlashcards();
+  const { decks, cards, createDeck, addCard, isLoading } = useFlashcardStore();
   const [showCreateDeck, setShowCreateDeck] = useState(false);
   const [showAddCard, setShowAddCard] = useState<string | null>(null);
   const [deckName, setDeckName] = useState("");
@@ -34,13 +35,35 @@ export default function DecksScreen() {
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
   const [cardFront, setCardFront] = useState("");
   const [cardBack, setCardBack] = useState("");
+  const [selectedLanguage, setSelectedLanguage] = useState<
+    "french" | "spanish"
+  >("french");
+  const getDeckColor = (deck: Deck & { language?: string }) => {
+    if (deck.color) return deck.color;
+    if (deck.language === "spanish") return Colors.greenMint;
+    if (deck.language === "french") return Colors.blue;
+    return Colors.gray;
+  };
+
+  const languageColors: Record<string, string> = {
+    spanish: Colors.greenMint,
+    french: Colors.blue,
+  };
+
+  const color = languageColors[selectedLanguage] || Colors.blue;
 
   const handleCreateDeck = async () => {
-    if (!deckName.trim()) {
-      return;
-    }
+    if (!deckName.trim()) return;
 
-    await createDeck(deckName.trim(), deckDescription.trim(), selectedColor);
+    const finalColor = selectedColor || color;
+
+    await createDeck(
+      selectedLanguage,
+      deckName.trim(),
+      deckDescription.trim(),
+      finalColor
+    );
+
     setDeckName("");
     setDeckDescription("");
     setSelectedColor(DECK_COLORS[0]);
@@ -48,12 +71,14 @@ export default function DecksScreen() {
   };
 
   const handleAddCard = async () => {
-    if (!cardFront.trim() || !cardBack.trim()) {
-      return;
-    }
-
+    if (!cardFront.trim() || !cardBack.trim()) return;
     if (showAddCard) {
-      await addCard(showAddCard, cardFront.trim(), cardBack.trim());
+      await addCard(
+        selectedLanguage,
+        showAddCard,
+        cardFront.trim(),
+        cardBack.trim()
+      );
       setCardFront("");
       setCardBack("");
       setShowAddCard(null);
@@ -61,11 +86,9 @@ export default function DecksScreen() {
   };
 
   const getDeckStats = (deckId: string) => {
-    const deckCards = cards.filter((card) => card.deckId === deckId);
-    const newCards = deckCards.filter((card) => card.repetitions === 0).length;
-    const dueCards = deckCards.filter(
-      (card) => card.nextReview <= Date.now()
-    ).length;
+    const deckCards = cards.filter((card: Flashcard) => card.deckId === deckId);
+    const newCards = deckCards.filter((c) => c.repetitions === 0).length;
+    const dueCards = deckCards.filter((c) => c.nextReview <= Date.now()).length;
     return { total: deckCards.length, new: newCards, due: dueCards };
   };
 
@@ -99,12 +122,15 @@ export default function DecksScreen() {
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {decks.map((deck) => {
+          {decks.map((deck: Deck & { language?: string }) => {
             const stats = getDeckStats(deck.id);
             return (
               <View
                 key={deck.id}
-                style={[styles.deckCard, { borderLeftColor: deck.color }]}
+                style={[
+                  styles.deckCard,
+                  { borderLeftColor: getDeckColor(deck) },
+                ]}
               >
                 <View style={styles.deckHeader}>
                   <View style={styles.deckInfo}>
@@ -113,7 +139,7 @@ export default function DecksScreen() {
                       {deck.description}
                     </Text>
                   </View>
-                  <BookOpen size={24} color={deck.color} />
+                  <BookOpen size={24} color={getDeckColor(deck)} />
                 </View>
 
                 <View style={styles.deckStats}>
@@ -139,7 +165,7 @@ export default function DecksScreen() {
                   <TouchableOpacity
                     style={[
                       styles.actionButton,
-                      { backgroundColor: deck.color },
+                      { backgroundColor: getDeckColor(deck) },
                     ]}
                     onPress={() => setShowAddCard(deck.id)}
                   >
