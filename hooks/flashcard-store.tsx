@@ -3,7 +3,7 @@ import { collection, getDocs, addDoc } from "firebase/firestore";
 import { db } from "@/firebaseConfig";
 import { Deck, Flashcard } from "@/types/flashcard";
 
-const SUPPORTED_LANGUAGES = ["spanish", "french"];
+const SUPPORTED_LANGUAGES = ["spanish", "french", "custom"];
 
 export function useFlashcardStore() {
   const [decks, setDecks] = useState<Deck[]>([]);
@@ -68,11 +68,15 @@ export function useFlashcardStore() {
     color: string
   ) => {
     const newDeck: Omit<Deck, "id"> = { name, description, color };
-    const ref = await addDoc(
-      collection(db, `flashcards/${language}/decks`),
-      newDeck
-    );
-    setDecks((prev) => [...prev, { ...newDeck, id: ref.id, language }]);
+    const ref = await addDoc(collection(db, "flashcards/custom/decks"), {
+      ...newDeck,
+      createdAt: Date.now(),
+    });
+
+    setDecks((prev) => [
+      ...prev,
+      { ...newDeck, id: ref.id, language: "custom" },
+    ]);
   };
 
   const addCard = async (
@@ -81,6 +85,8 @@ export function useFlashcardStore() {
     front: string,
     back: string
   ) => {
+    const targetLanguage =
+      language === "french" || language === "spanish" ? "custom" : language;
     const newCard: Omit<Flashcard, "id"> = {
       front,
       back,
@@ -93,10 +99,13 @@ export function useFlashcardStore() {
       difficulty: "good",
     };
     const ref = await addDoc(
-      collection(db, `flashcards/${language}/decks/${deckId}/cards`),
+      collection(db, `flashcards/${targetLanguage}/decks/${deckId}/cards`),
       newCard
     );
-    setCards((prev) => [...prev, { ...newCard, id: ref.id, language }]);
+    setCards((prev) => [
+      ...prev,
+      { ...newCard, id: ref.id, language: targetLanguage },
+    ]);
   };
 
   return {

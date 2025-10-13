@@ -39,7 +39,7 @@ export default function StudyScreen({ language = "spanish" }) {
     const fetchAllDecks = async () => {
       setLoading(true);
       try {
-        const languages = ["spanish", "french"];
+        const languages = ["spanish", "french", "custom"];
         const allDecks: (Deck & { language: string })[] = [];
         const allCounts: Record<string, number> = {};
 
@@ -228,7 +228,7 @@ export default function StudyScreen({ language = "spanish" }) {
                 </Text>
               </View>
             ) : (
-              decks.map((deck) => (
+              decks.map((deck: Deck & { language?: string }) => (
                 <TouchableOpacity
                   key={deck.id}
                   style={[
