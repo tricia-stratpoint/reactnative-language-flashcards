@@ -81,18 +81,31 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   },
 
   createDeck: async (language, name, description, color) => {
-    const newDeck = { name, description, color };
-    const ref = await addDoc(collection(db, `flashcards/${language}/decks`), {
-      ...newDeck,
-      createdAt: Timestamp.now(),
-    });
+    const deckLanguage = name.toLowerCase().includes("custom")
+      ? "custom"
+      : language;
+
+    const newDeck: Omit<Deck, "id" | "language"> = { name, description, color };
+    const ref = await addDoc(
+      collection(db, `flashcards/${deckLanguage}/decks`),
+      {
+        ...newDeck,
+        createdAt: Timestamp.now(),
+      }
+    );
 
     set((state) => ({
-      decks: [...state.decks, { ...newDeck, id: ref.id, language }],
+      decks: [
+        ...state.decks,
+        { ...newDeck, id: ref.id, language: deckLanguage },
+      ],
     }));
   },
 
   addCard: async (language, deckId, front, back) => {
+    const deck = get().decks.find((d) => d.id === deckId);
+    const cardLanguage: Flashcard["language"] = deck?.language || language;
+
     const newCard = {
       front,
       back,
@@ -105,12 +118,15 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       difficulty: "good" as const,
     };
     const ref = await addDoc(
-      collection(db, `flashcards/${language}/decks/${deckId}/cards`),
+      collection(db, `flashcards/${cardLanguage}/decks/${deckId}/cards`),
       newCard
     );
 
     set((state) => ({
-      cards: [...state.cards, { ...newCard, id: ref.id, language }],
+      cards: [
+        ...state.cards,
+        { ...newCard, id: ref.id, language: cardLanguage },
+      ],
     }));
   },
 }));
