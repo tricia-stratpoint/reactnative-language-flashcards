@@ -1,7 +1,7 @@
 import { create } from "zustand";
 import { Deck, Flashcard } from "@/types/flashcard";
 import { db } from "@/firebaseConfig";
-import { collection, getDocs, addDoc } from "firebase/firestore";
+import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
 
 const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
 
@@ -84,7 +84,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     const newDeck = { name, description, color };
     const ref = await addDoc(collection(db, `flashcards/${language}/decks`), {
       ...newDeck,
-      createdAt: Date.now(),
+      createdAt: Timestamp.now(),
     });
 
     set((state) => ({
@@ -97,8 +97,8 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       front,
       back,
       deckId,
-      createdAt: Date.now(),
-      nextReview: Date.now(),
+      createdAt: Timestamp.now(),
+      nextReview: Timestamp.now(),
       interval: 0,
       easeFactor: 2.5,
       repetitions: 0,

@@ -1,11 +1,13 @@
+import { Timestamp } from "firebase/firestore";
+
 export interface Flashcard {
   id: string;
   front: string;
   back: string;
   deckId: string;
-  createdAt: number;
-  lastReviewed?: number;
-  nextReview: number;
+  createdAt: number | Timestamp;
+  lastReviewed?: number | Timestamp;
+  nextReview: number | Timestamp;
   interval: number;
   easeFactor: number;
   repetitions: number;
