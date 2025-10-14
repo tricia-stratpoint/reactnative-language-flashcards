@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -15,6 +15,7 @@ import FlashcardComponent from "@/components/FlashcardComponent";
 import { Colors } from "../constants/colors";
 import { auth, db } from "@/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
+import { useFlashcardStore } from "@/hooks/flashcard-store";
 
 export default function StudyScreen({
   language = "spanish" as Deck["language"],
@@ -26,10 +27,33 @@ export default function StudyScreen({
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [sessionStats, setSessionStats] = useState({ studied: 0, correct: 0 });
   const [username, setUsername] = useState("");
-  const [loading, setLoading] = useState(true);
-  const [deckCardCounts, setDeckCardCounts] = useState<Record<string, number>>(
-    {}
-  );
+  const isLoading = useFlashcardStore((state) => state.isLoading);
+
+  const {
+    cards,
+    loadAllLanguages,
+    setCards,
+    decks: storeDecks,
+  } = useFlashcardStore();
+
+  useEffect(() => {
+    const init = async () => {
+      await loadAllLanguages();
+    };
+    init();
+  }, [loadAllLanguages]);
+
+  useEffect(() => {
+    setDecks(storeDecks);
+  }, [storeDecks]);
+
+  const deckCardCounts = useMemo(() => {
+    return decks.reduce((acc: Record<string, number>, deck: Deck) => {
+      acc[deck.id] = cards.filter((c) => c.deckId === deck.id).length;
+      return acc;
+    }, {});
+  }, [decks, cards]);
+
   const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
     switch (deck.language) {
@@ -42,53 +66,6 @@ export default function StudyScreen({
     }
   };
 
-  useEffect(() => {
-    const fetchAllDecks = async () => {
-      setLoading(true);
-      try {
-        const SUPPORTED_LANGUAGES: Deck["language"][] = [
-          "spanish",
-          "french",
-          "custom",
-        ];
-        const allDecks: Deck[] = [];
-        const allCounts: Record<string, number> = {};
-
-        for (const lang of SUPPORTED_LANGUAGES) {
-          const decksSnap = await getDocs(
-            collection(db, `flashcards/${lang}/decks`)
-          );
-          const loadedDecks: Deck[] = decksSnap.docs.map(
-            (doc) =>
-              ({
-                id: doc.id,
-                language: lang,
-                ...doc.data(),
-              } as Deck)
-          );
-
-          allDecks.push(...loadedDecks);
-
-          for (const deck of loadedDecks) {
-            const cardsSnap = await getDocs(
-              collection(db, `flashcards/${lang}/decks/${deck.id}/cards`)
-            );
-            allCounts[deck.id] = cardsSnap.size;
-          }
-        }
-
-        setDecks(allDecks);
-        setDeckCardCounts(allCounts);
-      } catch (err) {
-        console.error("Error loading decks:", err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchAllDecks();
-  }, []);
-
   const fetchFlashcards = async (
     deckId: string,
     deckLang: Deck["language"]
@@ -96,16 +73,12 @@ export default function StudyScreen({
     const snapshot = await getDocs(
       collection(db, `flashcards/${deckLang}/decks/${deckId}/cards`)
     );
-    const cards: Flashcard[] = snapshot.docs.map(
-      (doc) =>
-        ({
-          id: doc.id,
-          language: deckLang,
-          ...doc.data(),
-        } as Flashcard)
+    const fetchedCards: Flashcard[] = snapshot.docs.map(
+      (doc) => ({ id: doc.id, language: deckLang, ...doc.data() } as Flashcard)
     );
 
-    setStudyCards(cards.slice(0, 10)); // limit to 10 cards
+    setStudyCards(fetchedCards.slice(0, 10));
+    setCards(fetchedCards); // update zustand store
   };
 
   useEffect(() => {
@@ -140,11 +113,9 @@ export default function StudyScreen({
     }
   };
 
-  const startStudySession = (deckId: string) => {
-    setSelectedDeck(deckId);
-  };
+  const startStudySession = (deckId: string) => setSelectedDeck(deckId);
 
-  if (loading) {
+  if (isLoading) {
     return (
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <LinearGradient

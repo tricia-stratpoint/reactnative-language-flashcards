@@ -1,30 +1,50 @@
-import { useState, useEffect } from "react";
-import { collection, getDocs, addDoc } from "firebase/firestore";
-import { db } from "@/firebaseConfig";
+import { create } from "zustand";
 import { Deck, Flashcard } from "@/types/flashcard";
+import { db } from "@/firebaseConfig";
+import { collection, getDocs, addDoc } from "firebase/firestore";
 
 const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
 
-export function useFlashcardStore() {
-  const [decks, setDecks] = useState<Deck[]>([]);
-  const [cards, setCards] = useState<Flashcard[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+interface FlashcardState {
+  decks: Deck[];
+  cards: Flashcard[];
+  isLoading: boolean;
+  setCards: (cards: Flashcard[]) => void;
+  setDecks: (decks: Deck[]) => void;
+  loadAllLanguages: () => Promise<void>;
+  createDeck: (
+    language: Deck["language"],
+    name: string,
+    description: string,
+    color: string
+  ) => Promise<void>;
+  addCard: (
+    language: Flashcard["language"],
+    deckId: string,
+    front: string,
+    back: string
+  ) => Promise<void>;
+}
 
-  useEffect(() => {
-    loadAllLanguages();
-  }, []);
+export const useFlashcardStore = create<FlashcardState>((set, get) => ({
+  decks: [],
+  cards: [],
+  isLoading: true,
 
-  const loadAllLanguages = async () => {
-    setIsLoading(true);
+  setCards: (cards) => set({ cards }),
+  setDecks: (decks) => set({ decks }),
+
+  loadAllLanguages: async () => {
+    set({ isLoading: true });
     try {
       const allDecks: Deck[] = [];
       const allCards: Flashcard[] = [];
 
       for (const lang of SUPPORTED_LANGUAGES) {
-        const decksSnapshot = await getDocs(
+        const decksSnap = await getDocs(
           collection(db, `flashcards/${lang}/decks`)
         );
-        const loadedDecks = decksSnapshot.docs.map(
+        const loadedDecks = decksSnap.docs.map(
           (doc) =>
             ({
               id: doc.id,
@@ -36,10 +56,10 @@ export function useFlashcardStore() {
         allDecks.push(...loadedDecks);
 
         for (const deck of loadedDecks) {
-          const cardsSnapshot = await getDocs(
+          const cardsSnap = await getDocs(
             collection(db, `flashcards/${lang}/decks/${deck.id}/cards`)
           );
-          const deckCards = cardsSnapshot.docs.map(
+          const deckCards = cardsSnap.docs.map(
             (doc) =>
               ({
                 id: doc.id,
@@ -52,37 +72,28 @@ export function useFlashcardStore() {
         }
       }
 
-      setDecks(allDecks);
-      setCards(allCards);
-    } catch (error) {
-      console.error("Error loading decks:", error);
+      set({ decks: allDecks, cards: allCards });
+    } catch (err) {
+      console.error("Error loading decks:", err);
     } finally {
-      setIsLoading(false);
+      set({ isLoading: false });
     }
-  };
+  },
 
-  const createDeck = async (
-    language: Deck["language"],
-    name: string,
-    description: string,
-    color: string
-  ) => {
-    const newDeck: Omit<Deck, "id" | "language"> = { name, description, color };
+  createDeck: async (language, name, description, color) => {
+    const newDeck = { name, description, color };
     const ref = await addDoc(collection(db, `flashcards/${language}/decks`), {
       ...newDeck,
       createdAt: Date.now(),
     });
 
-    setDecks((prev) => [...prev, { ...newDeck, id: ref.id, language }]);
-  };
+    set((state) => ({
+      decks: [...state.decks, { ...newDeck, id: ref.id, language }],
+    }));
+  },
 
-  const addCard = async (
-    language: Flashcard["language"],
-    deckId: string,
-    front: string,
-    back: string
-  ) => {
-    const newCard: Omit<Flashcard, "id" | "language"> = {
+  addCard: async (language, deckId, front, back) => {
+    const newCard = {
       front,
       back,
       deckId,
@@ -91,20 +102,15 @@ export function useFlashcardStore() {
       interval: 0,
       easeFactor: 2.5,
       repetitions: 0,
-      difficulty: "good",
+      difficulty: "good" as const,
     };
     const ref = await addDoc(
       collection(db, `flashcards/${language}/decks/${deckId}/cards`),
       newCard
     );
-    setCards((prev) => [...prev, { ...newCard, id: ref.id, language }]);
-  };
 
-  return {
-    decks,
-    cards,
-    createDeck,
-    addCard,
-    isLoading,
-  };
-}
+    set((state) => ({
+      cards: [...state.cards, { ...newCard, id: ref.id, language }],
+    }));
+  },
+}));
