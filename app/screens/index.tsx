@@ -16,7 +16,9 @@ import { Colors } from "../constants/colors";
 import { auth, db } from "@/firebaseConfig";
 import { collection, getDocs } from "firebase/firestore";
 
-export default function StudyScreen({ language = "spanish" }) {
+export default function StudyScreen({
+  language = "spanish" as Deck["language"],
+}) {
   const insets = useSafeAreaInsets();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [studyCards, setStudyCards] = useState<Flashcard[]>([]);
@@ -28,32 +30,41 @@ export default function StudyScreen({ language = "spanish" }) {
   const [deckCardCounts, setDeckCardCounts] = useState<Record<string, number>>(
     {}
   );
-  const getDeckColor = (deck: Deck & { language?: string }) => {
+  const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
-    if (deck.language === "spanish") return Colors.greenMint;
-    if (deck.language === "french") return Colors.blue;
-    return Colors.gray;
+    switch (deck.language) {
+      case "spanish":
+        return Colors.greenMint;
+      case "french":
+        return Colors.blue;
+      default:
+        return Colors.blue;
+    }
   };
 
   useEffect(() => {
     const fetchAllDecks = async () => {
       setLoading(true);
       try {
-        const languages = ["spanish", "french", "custom"];
-        const allDecks: (Deck & { language: string })[] = [];
+        const SUPPORTED_LANGUAGES: Deck["language"][] = [
+          "spanish",
+          "french",
+          "custom",
+        ];
+        const allDecks: Deck[] = [];
         const allCounts: Record<string, number> = {};
 
-        for (const lang of languages) {
+        for (const lang of SUPPORTED_LANGUAGES) {
           const decksSnap = await getDocs(
             collection(db, `flashcards/${lang}/decks`)
           );
-          const loadedDecks = decksSnap.docs.map(
+          const loadedDecks: Deck[] = decksSnap.docs.map(
             (doc) =>
               ({
                 id: doc.id,
                 language: lang,
                 ...doc.data(),
-              } as Deck & { language: string })
+              } as Deck)
           );
 
           allDecks.push(...loadedDecks);
@@ -78,13 +89,20 @@ export default function StudyScreen({ language = "spanish" }) {
     fetchAllDecks();
   }, []);
 
-  const fetchFlashcards = async (deckId: string) => {
+  const fetchFlashcards = async (
+    deckId: string,
+    deckLang: Deck["language"]
+  ) => {
     const snapshot = await getDocs(
-      collection(db, `flashcards/${language}/decks/${deckId}/cards`)
+      collection(db, `flashcards/${deckLang}/decks/${deckId}/cards`)
     );
-
     const cards: Flashcard[] = snapshot.docs.map(
-      (doc) => ({ id: doc.id, ...doc.data() } as Flashcard)
+      (doc) =>
+        ({
+          id: doc.id,
+          language: deckLang,
+          ...doc.data(),
+        } as Flashcard)
     );
 
     setStudyCards(cards.slice(0, 10)); // limit to 10 cards
@@ -97,13 +115,14 @@ export default function StudyScreen({ language = "spanish" }) {
 
   useEffect(() => {
     if (selectedDeck) {
-      fetchFlashcards(selectedDeck);
+      const deck = decks.find((d) => d.id === selectedDeck);
+      if (deck) fetchFlashcards(deck.id, deck.language);
       setCurrentCardIndex(0);
       setSessionStats({ studied: 0, correct: 0 });
     }
-  }, [selectedDeck]);
+  }, [selectedDeck, decks]);
 
-  const handleCardSwipe = (difficulty: "again" | "hard" | "good" | "easy") => {
+  const handleCardSwipe = (difficulty: Flashcard["difficulty"]) => {
     const currentCard = studyCards[currentCardIndex];
     if (!currentCard) return;
 
@@ -228,7 +247,7 @@ export default function StudyScreen({ language = "spanish" }) {
                 </Text>
               </View>
             ) : (
-              decks.map((deck: Deck & { language?: string }) => (
+              decks.map((deck) => (
                 <TouchableOpacity
                   key={deck.id}
                   style={[

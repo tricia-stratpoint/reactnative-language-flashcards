@@ -11,6 +11,7 @@ export interface Flashcard {
   repetitions: number;
   difficulty: "again" | "hard" | "good" | "easy";
   wordFrequency?: number;
+  language: "spanish" | "french" | "custom";
 }
 
 export interface Deck {
@@ -18,6 +19,7 @@ export interface Deck {
   name: string;
   description: string;
   color: string;
+  language: "spanish" | "french" | "custom";
 }
 
 export interface StudySession {

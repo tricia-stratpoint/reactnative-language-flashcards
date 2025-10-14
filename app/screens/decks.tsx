@@ -35,14 +35,18 @@ export default function DecksScreen() {
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
   const [cardFront, setCardFront] = useState("");
   const [cardBack, setCardBack] = useState("");
-  const [selectedLanguage, setSelectedLanguage] = useState<
-    "french" | "spanish"
-  >("french");
-  const getDeckColor = (deck: Deck & { language?: string }) => {
+  const [selectedLanguage, setSelectedLanguage] =
+    useState<Deck["language"]>("spanish");
+  const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
-    if (deck.language === "spanish") return Colors.greenMint;
-    if (deck.language === "french") return Colors.blue;
-    return Colors.gray;
+    switch (deck.language) {
+      case "spanish":
+        return Colors.greenMint;
+      case "french":
+        return Colors.blue;
+      default:
+        return Colors.blue;
+    }
   };
 
   const languageColors: Record<string, string> = {
@@ -73,12 +77,9 @@ export default function DecksScreen() {
   const handleAddCard = async () => {
     if (!cardFront.trim() || !cardBack.trim()) return;
     if (showAddCard) {
-      await addCard(
-        selectedLanguage,
-        showAddCard,
-        cardFront.trim(),
-        cardBack.trim()
-      );
+      const deck = decks.find((d) => d.id === showAddCard);
+      if (!deck) return;
+      await addCard(deck.language, deck.id, cardFront.trim(), cardBack.trim());
       setCardFront("");
       setCardBack("");
       setShowAddCard(null);
