@@ -89,7 +89,17 @@ export default function DecksScreen() {
   const getDeckStats = (deckId: string) => {
     const deckCards = cards.filter((card: Flashcard) => card.deckId === deckId);
     const newCards = deckCards.filter((c) => c.repetitions === 0).length;
-    const dueCards = deckCards.filter((c) => c.nextReview <= Date.now()).length;
+    const dueCards = deckCards.filter((c) => {
+      let nextReviewTime: number;
+      if (typeof c.nextReview === "number") {
+        nextReviewTime = c.nextReview;
+      } else if (c.nextReview && typeof c.nextReview.toMillis === "function") {
+        nextReviewTime = c.nextReview.toMillis();
+      } else {
+        nextReviewTime = 0;
+      }
+      return nextReviewTime <= Date.now();
+    }).length;
     return { total: deckCards.length, new: newCards, due: dueCards };
   };
 
