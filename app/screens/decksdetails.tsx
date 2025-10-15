@@ -17,21 +17,44 @@ import { Colors } from "../constants/colors";
 import { Flashcard } from "@/types/flashcard";
 import { RootStackParamList } from "../navigation/AppNavigator";
 
+const DECK_COLORS = [
+  Colors.red,
+  Colors.orange,
+  Colors.greenMint,
+  Colors.greenDark,
+  Colors.blue,
+  Colors.purple,
+  Colors.pink,
+];
+
 type Props = NativeStackScreenProps<RootStackParamList, "DeckDetails">;
 
 export default function DeckDetailsScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
-  const { decks, cards, addCard } = useFlashcardStore();
+  const { decks, cards, addCard, updateDeck } = useFlashcardStore();
   const deck = decks.find((d) => d.id === deckId);
 
   const [deckCards, setDeckCards] = useState<Flashcard[]>([]);
   const [showAddCard, setShowAddCard] = useState<string | null>(null);
+  const [showEditDeck, setShowEditDeck] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editDescription, setEditDescription] = useState("");
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
   const [cardFront, setCardFront] = useState("");
   const [cardBack, setCardBack] = useState("");
 
   useEffect(() => {
     setDeckCards(cards.filter((c) => c.deckId === deckId));
   }, [cards, deckId]);
+
+  useEffect(() => {
+    if (deck) {
+      setEditName(deck.name);
+      setEditDescription(deck.description || "");
+      setSelectedColor(deck.color || null);
+    }
+  }, [deck]);
 
   if (!deck) return null;
 
@@ -48,7 +71,19 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
       setShowAddCard(null);
     }
   };
-  const handleEditDeck = () => {};
+  const handleEditDeck = () => {
+    setShowEditDeck(true);
+  };
+  const handleSaveDeck = async () => {
+    if (!editName.trim()) return;
+    await updateDeck(deckId, deck.language, {
+      name: editName.trim(),
+      description: editDescription.trim(),
+      color: selectedColor || deck.color,
+    });
+    setShowEditDeck(false);
+  };
+
   const handleDeleteDeck = () => {
     Alert.alert("Delete Deck", "Are you sure you want to delete this deck?", [
       { text: "Cancel", style: "cancel" },
@@ -168,6 +203,62 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                   onPress={handleAddCard}
                 >
                   <Text style={styles.createButtonText}>Add Card</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Edit Deck Modal */}
+        <Modal visible={showEditDeck} transparent animationType="fade">
+          <View style={styles.modal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Edit Deck Details</Text>
+
+              <TextInput
+                style={styles.input}
+                placeholder="Deck name"
+                value={editName}
+                onChangeText={setEditName}
+                maxLength={50}
+              />
+
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Description (optional)"
+                value={editDescription}
+                onChangeText={setEditDescription}
+                multiline
+                maxLength={200}
+              />
+
+              <Text style={styles.colorLabel}>Choose a color:</Text>
+              <View style={styles.colorPicker}>
+                {DECK_COLORS.map((color) => (
+                  <TouchableOpacity
+                    key={color}
+                    style={[
+                      styles.colorOption,
+                      { backgroundColor: color },
+                      selectedColor === color && styles.selectedColor,
+                    ]}
+                    onPress={() => setSelectedColor(color)}
+                  />
+                ))}
+              </View>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowEditDeck(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.createButton]}
+                  onPress={handleSaveDeck}
+                >
+                  <Text style={styles.createButtonText}>Save Changes</Text>
                 </TouchableOpacity>
               </View>
             </View>
@@ -334,5 +425,28 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     textAlign: "center",
     marginTop: 8,
+  },
+  colorLabel: {
+    fontSize: 16,
+    color: Colors.black,
+    marginBottom: 8,
+    fontWeight: "600",
+  },
+  colorPicker: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  colorOption: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+  },
+  selectedColor: {
+    borderColor: Colors.blue,
+    borderWidth: 3,
   },
 });
