@@ -4,7 +4,6 @@ import {
   Text,
   TouchableOpacity,
   FlatList,
-  Alert,
   StyleSheet,
   SafeAreaView,
   Modal,
@@ -31,7 +30,7 @@ type Props = NativeStackScreenProps<RootStackParamList, "DeckDetails">;
 
 export default function DeckDetailsScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
-  const { decks, cards, addCard, updateDeck } = useFlashcardStore();
+  const { decks, cards, addCard, updateDeck, deleteDeck } = useFlashcardStore();
   const deck = decks.find((d) => d.id === deckId);
 
   const [deckCards, setDeckCards] = useState<Flashcard[]>([]);
@@ -40,6 +39,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
   const [editName, setEditName] = useState("");
   const [editDescription, setEditDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
+  const [showDeleteDeckModal, setShowDeleteDeckModal] = useState(false);
 
   const [cardFront, setCardFront] = useState("");
   const [cardBack, setCardBack] = useState("");
@@ -84,13 +84,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     setShowEditDeck(false);
   };
 
-  const handleDeleteDeck = () => {
-    Alert.alert("Delete Deck", "Are you sure you want to delete this deck?", [
-      { text: "Cancel", style: "cancel" },
-      { text: "Delete", style: "destructive", onPress: () => {} },
-    ]);
-  };
-
   const handleEditCard = (cardId: string) => {};
   const handleDeleteCard = (cardId: string) => {};
 
@@ -125,7 +118,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.button, { backgroundColor: Colors.red }]}
-                onPress={handleDeleteDeck}
+                onPress={() => setShowDeleteDeckModal(true)}
               >
                 <Text style={styles.buttonText}>Delete Deck</Text>
               </TouchableOpacity>
@@ -264,6 +257,42 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           </View>
         </Modal>
+
+        {/* Delete Deck Modal */}
+        <Modal visible={showDeleteDeckModal} transparent animationType="fade">
+          <View style={styles.modal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Delete Deck?</Text>
+              <Text style={styles.modalDescription}>
+                Are you sure you want to delete the deck &quot;{deck.name}
+                &quot;? This action cannot be undone.
+              </Text>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowDeleteDeckModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton,
+                    styles.createButton,
+                    { backgroundColor: Colors.red },
+                  ]}
+                  onPress={async () => {
+                    await deleteDeck(deck.id, deck.language); // remove from db
+                    setShowDeleteDeckModal(false);
+                    navigation.goBack(); // remove from ui
+                  }}
+                >
+                  <Text style={styles.createButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -369,6 +398,12 @@ const styles = StyleSheet.create({
     fontWeight: "bold",
     color: "#1f2937",
     marginBottom: 20,
+    textAlign: "center",
+  },
+  modalDescription: {
+    fontSize: 16,
+    color: Colors.gray,
+    marginBottom: 24,
     textAlign: "center",
   },
   input: {
