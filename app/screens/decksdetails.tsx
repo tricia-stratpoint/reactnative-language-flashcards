@@ -30,7 +30,8 @@ type Props = NativeStackScreenProps<RootStackParamList, "DeckDetails">;
 
 export default function DeckDetailsScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
-  const { decks, cards, addCard, updateDeck, deleteDeck } = useFlashcardStore();
+  const { decks, cards, addCard, updateDeck, deleteDeck, deleteCard } =
+    useFlashcardStore();
   const deck = decks.find((d) => d.id === deckId);
 
   const [deckCards, setDeckCards] = useState<Flashcard[]>([]);
@@ -40,6 +41,10 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
   const [editDescription, setEditDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState<string | null>(null);
   const [showDeleteDeckModal, setShowDeleteDeckModal] = useState(false);
+  const [showDeleteCardModal, setShowDeleteCardModal] = useState<{
+    id: string;
+    front: string;
+  } | null>(null);
 
   const [cardFront, setCardFront] = useState("");
   const [cardBack, setCardBack] = useState("");
@@ -85,7 +90,11 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
   };
 
   const handleEditCard = (cardId: string) => {};
-  const handleDeleteCard = (cardId: string) => {};
+
+  const handleDeleteCard = async (cardId: string) => {
+    if (!deck) return;
+    await deleteCard(deck.language, deck.id, cardId);
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -142,7 +151,14 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                     <TouchableOpacity onPress={() => handleEditCard(item.id)}>
                       <Pencil color={Colors.blue} size={20} />
                     </TouchableOpacity>
-                    <TouchableOpacity onPress={() => handleDeleteCard(item.id)}>
+                    <TouchableOpacity
+                      onPress={() =>
+                        setShowDeleteCardModal({
+                          id: item.id,
+                          front: item.front,
+                        })
+                      }
+                    >
                       <Trash2 color={Colors.red} size={20} />
                     </TouchableOpacity>
                   </View>
@@ -285,6 +301,43 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                     await deleteDeck(deck.id, deck.language); // remove from db
                     setShowDeleteDeckModal(false);
                     navigation.goBack(); // remove from ui
+                  }}
+                >
+                  <Text style={styles.createButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Delete Card Modal */}
+        <Modal visible={!!showDeleteCardModal} transparent animationType="fade">
+          <View style={styles.modal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Delete Card?</Text>
+              <Text style={styles.modalDescription}>
+                Are you sure you want to delete the card &quot;
+                {showDeleteCardModal?.front}&quot;? This action cannot be
+                undone.
+              </Text>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowDeleteCardModal(null)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[
+                    styles.modalButton,
+                    styles.createButton,
+                    { backgroundColor: Colors.red },
+                  ]}
+                  onPress={async () => {
+                    if (!showDeleteCardModal) return;
+                    await handleDeleteCard(showDeleteCardModal.id);
+                    setShowDeleteCardModal(null);
                   }}
                 >
                   <Text style={styles.createButtonText}>Delete</Text>
