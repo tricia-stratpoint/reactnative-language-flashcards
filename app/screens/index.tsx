@@ -108,6 +108,10 @@ export default function StudyScreen({
       studied: prev.studied + 1,
       correct: prev.correct + (isCorrect ? 1 : 0),
     }));
+    // const updatedCards: Flashcard[] = cards.map((card: Flashcard) =>
+    //   card.id === currentCard.id ? { ...card, difficulty } : card
+    // );
+    // setCards(updatedCards);
 
     if (currentCardIndex < studyCards.length - 1) {
       setCurrentCardIndex((prev) => prev + 1);

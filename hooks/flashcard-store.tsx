@@ -51,6 +51,10 @@ interface FlashcardState {
     deckId: string,
     cardId: string
   ) => Promise<void>;
+  updateAchievements: (
+    newStats: Partial<UserStats> & { perfectSession?: boolean }
+  ) => void;
+  studyCard: (isPerfectSession: boolean) => void;
 }
 
 export const useFlashcardStore = create<FlashcardState>((set, get) => ({
@@ -61,7 +65,40 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     studyStreak: 0,
     lastStudyDate: undefined,
     totalStudyTime: 0,
-    achievements: [],
+    achievements: [
+      {
+        id: "first_card",
+        title: "First Steps",
+        description: "Study your first flashcard",
+        icon: "🎯",
+        progress: 0,
+        target: 1,
+      },
+      {
+        id: "study_streak_7",
+        title: "Week Warrior",
+        description: "Study for 7 days in a row",
+        icon: "🔥",
+        progress: 0,
+        target: 7,
+      },
+      {
+        id: "cards_100",
+        title: "Century Club",
+        description: "Study 100 flashcards",
+        icon: "💯",
+        progress: 0,
+        target: 100,
+      },
+      {
+        id: "perfect_session",
+        title: "Perfect Score",
+        description: "Get 100% correct in a study session",
+        icon: "⭐",
+        progress: 0,
+        target: 1,
+      },
+    ],
   },
   isLoading: true,
   setCards: (cards) => set({ cards }),
@@ -248,5 +285,68 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     } catch (err) {
       console.error("Error deleting card:", err);
     }
+  },
+
+  updateAchievements: (
+    newStats: Partial<UserStats> & { perfectSession?: boolean }
+  ) => {
+    set((state) => {
+      const now = Date.now();
+      const achievements = state.stats.achievements.map((a) => {
+        let progress = a.progress;
+
+        if (
+          a.id === "first_card" &&
+          newStats.totalCardsStudied &&
+          newStats.totalCardsStudied >= 1
+        ) {
+          progress = 1;
+        } else if (a.id === "cards_100" && newStats.totalCardsStudied) {
+          progress = Math.min(newStats.totalCardsStudied, a.target);
+        } else if (a.id === "study_streak_7" && newStats.studyStreak) {
+          progress = Math.min(newStats.studyStreak, a.target);
+        } else if (a.id === "perfect_session" && newStats.perfectSession) {
+          progress = 1;
+        }
+
+        const unlockedAt = progress >= a.target ? now : a.unlockedAt;
+
+        return { ...a, progress, unlockedAt };
+      });
+
+      return { stats: { ...state.stats, ...newStats, achievements } };
+    });
+  },
+
+  studyCard: (perfectSession) => {
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const { stats } = get();
+    const lastDate = stats.lastStudyDate ? new Date(stats.lastStudyDate) : null;
+
+    const newStreak =
+      lastDate && lastDate.toDateString() === yesterday.toDateString()
+        ? stats.studyStreak + 1
+        : 1;
+
+    const newTotalCards = stats.totalCardsStudied + 1;
+    const now = Date.now();
+
+    set({
+      stats: {
+        ...stats,
+        totalCardsStudied: newTotalCards,
+        studyStreak: newStreak,
+        lastStudyDate: now,
+      },
+    });
+
+    get().updateAchievements({
+      totalCardsStudied: newTotalCards,
+      studyStreak: newStreak,
+      perfectSession,
+    });
   },
 }));
