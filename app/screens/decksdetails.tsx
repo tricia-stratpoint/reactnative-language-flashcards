@@ -30,8 +30,15 @@ type Props = NativeStackScreenProps<RootStackParamList, "DeckDetails">;
 
 export default function DeckDetailsScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
-  const { decks, cards, addCard, updateDeck, deleteDeck, deleteCard } =
-    useFlashcardStore();
+  const {
+    decks,
+    cards,
+    addCard,
+    updateDeck,
+    deleteDeck,
+    deleteCard,
+    updateCard,
+  } = useFlashcardStore();
   const deck = decks.find((d) => d.id === deckId);
 
   const [deckCards, setDeckCards] = useState<Flashcard[]>([]);
@@ -45,6 +52,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     id: string;
     front: string;
   } | null>(null);
+  const [editingCard, setEditingCard] = useState<Flashcard | null>(null);
 
   const [cardFront, setCardFront] = useState("");
   const [cardBack, setCardBack] = useState("");
@@ -90,7 +98,26 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     setShowEditDeck(false);
   };
 
-  const handleEditCard = (cardId: string) => {};
+  const handleEditCard = (cardId: string) => {
+    const card = deckCards.find((c) => c.id === cardId);
+    if (!card) return;
+    setEditingCard(card);
+    setCardFront(card.front);
+    setCardBack(card.back);
+  };
+
+  const handleSaveCard = async () => {
+    if (!editingCard || !cardFront.trim() || !cardBack.trim()) return;
+
+    await updateCard(deck.language, deck.id, editingCard.id, {
+      front: cardFront.trim(),
+      back: cardBack.trim(),
+    });
+
+    setEditingCard(null);
+    setCardFront("");
+    setCardBack("");
+  };
 
   const handleDeleteCard = async (cardId: string) => {
     if (!deck) return;
@@ -305,6 +332,48 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                   }}
                 >
                   <Text style={styles.createButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Edit Card Modal */}
+        <Modal visible={!!editingCard} transparent animationType="fade">
+          <View style={styles.modal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Edit Card</Text>
+
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Front of card"
+                value={cardFront}
+                onChangeText={setCardFront}
+                multiline
+                maxLength={500}
+              />
+
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Back of card"
+                value={cardBack}
+                onChangeText={setCardBack}
+                multiline
+                maxLength={500}
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setEditingCard(null)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.createButton]}
+                  onPress={handleSaveCard}
+                >
+                  <Text style={styles.createButtonText}>Save Changes</Text>
                 </TouchableOpacity>
               </View>
             </View>
