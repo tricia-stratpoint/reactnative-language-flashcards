@@ -183,6 +183,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       easeFactor: 2.5,
       repetitions: 0,
       difficulty: "good" as const,
+      isCustom: true,
     };
     const ref = await addDoc(
       collection(db, `flashcards/${cardLanguage}/decks/${deckId}/cards`),

@@ -64,6 +64,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
   if (!deck) return null;
 
   const isCustomDeck = deck.language === "custom";
+  const isCustomCard = (card: Flashcard) => card.isCustom;
 
   const handleAddCard = async () => {
     if (!cardFront.trim() || !cardBack.trim()) return;
@@ -146,7 +147,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                   <Text style={styles.cardBack}>{item.back}</Text>
                 </View>
 
-                {isCustomDeck && (
+                {isCustomCard(item) && (
                   <View style={styles.cardActions}>
                     <TouchableOpacity onPress={() => handleEditCard(item.id)}>
                       <Pencil color={Colors.blue} size={20} />

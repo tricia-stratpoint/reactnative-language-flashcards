@@ -14,6 +14,7 @@ export interface Flashcard {
   difficulty: "again" | "hard" | "good" | "easy";
   wordFrequency?: number;
   language: "spanish" | "french" | "custom";
+  isCustom?: boolean;
 }
 
 export interface Deck {
