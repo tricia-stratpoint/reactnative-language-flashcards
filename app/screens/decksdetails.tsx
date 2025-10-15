@@ -122,6 +122,14 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
               </View>
             </View>
           )}
+          ListEmptyComponent={
+            <View style={styles.emptyState}>
+              <Text style={styles.emptyTitle}>No cards yet.</Text>
+              <Text style={styles.emptyDescription}>
+                Tap &quot;Add Card&quot; to create your first one!
+              </Text>
+            </View>
+          }
         />
 
         {/* Add Card Modal */}
@@ -310,5 +318,21 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     borderRadius: 12,
     alignItems: "center",
+  },
+  emptyState: {
+    alignItems: "center",
+    justifyContent: "center",
+    paddingVertical: 60,
+  },
+  emptyTitle: {
+    fontSize: 18,
+    color: Colors.gray,
+    marginTop: 16,
+  },
+  emptyDescription: {
+    fontSize: 14,
+    color: Colors.gray,
+    textAlign: "center",
+    marginTop: 8,
   },
 });
