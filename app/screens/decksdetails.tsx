@@ -11,7 +11,7 @@ import {
   TextInput,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ArrowLeft } from "lucide-react-native";
+import { ArrowLeft, Pencil, Trash2 } from "lucide-react-native";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
 import { Flashcard } from "@/types/flashcard";
@@ -103,19 +103,23 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => (
             <View style={styles.card}>
-              <Text style={styles.cardFront}>{item.front}</Text>
-              <Text style={styles.cardBack}>{item.back}</Text>
-
-              {isCustomDeck && (
-                <View style={styles.cardActions}>
-                  <TouchableOpacity onPress={() => handleEditCard(item.id)}>
-                    <Text style={styles.editText}>Edit</Text>
-                  </TouchableOpacity>
-                  <TouchableOpacity onPress={() => handleDeleteCard(item.id)}>
-                    <Text style={styles.deleteText}>Delete</Text>
-                  </TouchableOpacity>
+              <View style={styles.cardHeader}>
+                <View style={styles.cardTextContainer}>
+                  <Text style={styles.cardFront}>{item.front}</Text>
+                  <Text style={styles.cardBack}>{item.back}</Text>
                 </View>
-              )}
+
+                {isCustomDeck && (
+                  <View style={styles.cardActions}>
+                    <TouchableOpacity onPress={() => handleEditCard(item.id)}>
+                      <Pencil color={Colors.blue} size={20} />
+                    </TouchableOpacity>
+                    <TouchableOpacity onPress={() => handleDeleteCard(item.id)}>
+                      <Trash2 color={Colors.red} size={20} />
+                    </TouchableOpacity>
+                  </View>
+                )}
+              </View>
             </View>
           )}
         />
@@ -230,17 +234,18 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     marginTop: 4,
   },
+  cardHeader: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
+  cardTextContainer: {
+    flex: 1,
+  },
   cardActions: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    marginTop: 8,
-    gap: 16,
-  },
-  editText: {
-    color: Colors.blue,
-  },
-  deleteText: {
-    color: Colors.red,
+    alignItems: "center",
+    gap: 8,
   },
   modal: {
     position: "absolute",
