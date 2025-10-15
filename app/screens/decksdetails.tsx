@@ -7,6 +7,8 @@ import {
   Alert,
   StyleSheet,
   SafeAreaView,
+  Modal,
+  TextInput,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ArrowLeft } from "lucide-react-native";
@@ -19,10 +21,13 @@ type Props = NativeStackScreenProps<RootStackParamList, "DeckDetails">;
 
 export default function DeckDetailsScreen({ route, navigation }: Props) {
   const { deckId } = route.params;
-  const { decks, cards } = useFlashcardStore();
+  const { decks, cards, addCard } = useFlashcardStore();
   const deck = decks.find((d) => d.id === deckId);
 
   const [deckCards, setDeckCards] = useState<Flashcard[]>([]);
+  const [showAddCard, setShowAddCard] = useState<string | null>(null);
+  const [cardFront, setCardFront] = useState("");
+  const [cardBack, setCardBack] = useState("");
 
   useEffect(() => {
     setDeckCards(cards.filter((c) => c.deckId === deckId));
@@ -32,7 +37,17 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
 
   const isCustomDeck = deck.language === "custom";
 
-  const handleAddCard = () => {};
+  const handleAddCard = async () => {
+    if (!cardFront.trim() || !cardBack.trim()) return;
+    if (showAddCard) {
+      const deck = decks.find((d) => d.id === showAddCard);
+      if (!deck) return;
+      await addCard(deck.language, deck.id, cardFront.trim(), cardBack.trim());
+      setCardFront("");
+      setCardBack("");
+      setShowAddCard(null);
+    }
+  };
   const handleEditDeck = () => {};
   const handleDeleteDeck = () => {
     Alert.alert("Delete Deck", "Are you sure you want to delete this deck?", [
@@ -60,7 +75,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
         <View style={styles.actions}>
           <TouchableOpacity
             style={[styles.button, { backgroundColor: Colors.greenMint }]}
-            onPress={handleAddCard}
+            onPress={() => setShowAddCard(deck.id)}
           >
             <Text style={styles.buttonText}>Add Card</Text>
           </TouchableOpacity>
@@ -104,6 +119,48 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           )}
         />
+
+        {/* Add Card Modal */}
+        <Modal visible={!!showAddCard} transparent animationType="fade">
+          <View style={styles.modal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Add New Card</Text>
+
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Front of card (question/prompt)"
+                value={cardFront}
+                onChangeText={setCardFront}
+                multiline
+                maxLength={500}
+              />
+
+              <TextInput
+                style={[styles.input, styles.textArea]}
+                placeholder="Back of card (answer)"
+                value={cardBack}
+                onChangeText={setCardBack}
+                multiline
+                maxLength={500}
+              />
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowAddCard(null)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.createButton]}
+                  onPress={handleAddCard}
+                >
+                  <Text style={styles.createButtonText}>Add Card</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -184,5 +241,69 @@ const styles = StyleSheet.create({
   },
   deleteText: {
     color: Colors.red,
+  },
+  modal: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
+    justifyContent: "center",
+    alignItems: "center",
+    padding: 20,
+  },
+  modalContent: {
+    backgroundColor: Colors.white,
+    borderRadius: 20,
+    padding: 24,
+    width: "100%",
+    maxWidth: 400,
+  },
+  modalTitle: {
+    fontSize: 20,
+    fontWeight: "bold",
+    color: "#1f2937",
+    marginBottom: 20,
+    textAlign: "center",
+  },
+  input: {
+    borderWidth: 1,
+    borderColor: "#d1d5db",
+    borderRadius: 12,
+    padding: 12,
+    fontSize: 16,
+    marginBottom: 16,
+    backgroundColor: "#f9fafb",
+  },
+  textArea: {
+    height: 80,
+    textAlignVertical: "top",
+  },
+  cancelButton: {
+    backgroundColor: "#f3f4f6",
+  },
+  createButton: {
+    backgroundColor: Colors.blue,
+  },
+  cancelButtonText: {
+    color: Colors.gray,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  createButtonText: {
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: "500",
+  },
+  modalActions: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  modalButton: {
+    flex: 1,
+    paddingVertical: 12,
+    borderRadius: 12,
+    alignItems: "center",
   },
 });

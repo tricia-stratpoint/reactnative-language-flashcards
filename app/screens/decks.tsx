@@ -36,16 +36,12 @@ type DecksScreenNavigationProp = NativeStackNavigationProp<
 export default function DecksScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<DecksScreenNavigationProp>();
-  const { decks, cards, createDeck, addCard, isLoading } = useFlashcardStore();
+  const { decks, cards, createDeck, isLoading } = useFlashcardStore();
   const [showCreateDeck, setShowCreateDeck] = useState(false);
-  const [showAddCard, setShowAddCard] = useState<string | null>(null);
   const [deckName, setDeckName] = useState("");
   const [deckDescription, setDeckDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
-  const [cardFront, setCardFront] = useState("");
-  const [cardBack, setCardBack] = useState("");
-  const [selectedLanguage, setSelectedLanguage] =
-    useState<Deck["language"]>("spanish");
+
   const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
     switch (deck.language) {
@@ -64,7 +60,7 @@ export default function DecksScreen() {
     const finalColor = selectedColor || Colors.blue;
 
     await createDeck(
-      selectedLanguage,
+      "custom",
       deckName.trim(),
       deckDescription.trim(),
       finalColor
@@ -74,18 +70,6 @@ export default function DecksScreen() {
     setDeckDescription("");
     setSelectedColor(DECK_COLORS[0]);
     setShowCreateDeck(false);
-  };
-
-  const handleAddCard = async () => {
-    if (!cardFront.trim() || !cardBack.trim()) return;
-    if (showAddCard) {
-      const deck = decks.find((d) => d.id === showAddCard);
-      if (!deck) return;
-      await addCard(deck.language, deck.id, cardFront.trim(), cardBack.trim());
-      setCardFront("");
-      setCardBack("");
-      setShowAddCard(null);
-    }
   };
 
   const getDeckStats = (deckId: string) => {
@@ -255,48 +239,6 @@ export default function DecksScreen() {
                   onPress={handleCreateDeck}
                 >
                   <Text style={styles.createButtonText}>Create</Text>
-                </TouchableOpacity>
-              </View>
-            </View>
-          </View>
-        </Modal>
-
-        {/* Add Card Modal */}
-        <Modal visible={!!showAddCard} transparent animationType="fade">
-          <View style={styles.modal}>
-            <View style={styles.modalContent}>
-              <Text style={styles.modalTitle}>Add New Card</Text>
-
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Front of card (question/prompt)"
-                value={cardFront}
-                onChangeText={setCardFront}
-                multiline
-                maxLength={500}
-              />
-
-              <TextInput
-                style={[styles.input, styles.textArea]}
-                placeholder="Back of card (answer)"
-                value={cardBack}
-                onChangeText={setCardBack}
-                multiline
-                maxLength={500}
-              />
-
-              <View style={styles.modalActions}>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.cancelButton]}
-                  onPress={() => setShowAddCard(null)}
-                >
-                  <Text style={styles.cancelButtonText}>Cancel</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                  style={[styles.modalButton, styles.createButton]}
-                  onPress={handleAddCard}
-                >
-                  <Text style={styles.createButtonText}>Add Card</Text>
                 </TouchableOpacity>
               </View>
             </View>
