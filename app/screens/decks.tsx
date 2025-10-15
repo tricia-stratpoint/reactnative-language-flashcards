@@ -11,9 +11,12 @@ import {
 import { LinearGradient } from "expo-linear-gradient";
 import { Plus, BookOpen, BookAlert } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
 import { Flashcard, Deck } from "@/types/flashcard";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
 const DECK_COLORS = [
   Colors.red,
@@ -25,8 +28,14 @@ const DECK_COLORS = [
   Colors.pink,
 ];
 
+type DecksScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "DeckDetails"
+>;
+
 export default function DecksScreen() {
   const insets = useSafeAreaInsets();
+  const navigation = useNavigation<DecksScreenNavigationProp>();
   const { decks, cards, createDeck, addCard, isLoading } = useFlashcardStore();
   const [showCreateDeck, setShowCreateDeck] = useState(false);
   const [showAddCard, setShowAddCard] = useState<string | null>(null);
@@ -49,17 +58,10 @@ export default function DecksScreen() {
     }
   };
 
-  const languageColors: Record<string, string> = {
-    spanish: Colors.greenMint,
-    french: Colors.blue,
-  };
-
-  const color = languageColors[selectedLanguage] || Colors.blue;
-
   const handleCreateDeck = async () => {
     if (!deckName.trim()) return;
 
-    const finalColor = selectedColor || color;
+    const finalColor = selectedColor || Colors.blue;
 
     await createDeck(
       selectedLanguage,
@@ -178,10 +180,14 @@ export default function DecksScreen() {
                       styles.actionButton,
                       { backgroundColor: getDeckColor(deck) },
                     ]}
-                    onPress={() => setShowAddCard(deck.id)}
+                    onPress={() =>
+                      navigation.navigate("DeckDetails", {
+                        deckId: deck.id,
+                        language: deck.language,
+                      })
+                    }
                   >
-                    <Plus size={16} color={Colors.white} />
-                    <Text style={styles.actionButtonText}>Add Card</Text>
+                    <Text style={styles.actionButtonText}>Manage Deck</Text>
                   </TouchableOpacity>
                 </View>
               </View>

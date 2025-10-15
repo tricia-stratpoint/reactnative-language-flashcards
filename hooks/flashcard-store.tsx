@@ -1,7 +1,15 @@
 import { create } from "zustand";
 import { Deck, Flashcard } from "@/types/flashcard";
 import { db } from "@/firebaseConfig";
-import { collection, getDocs, addDoc, Timestamp } from "firebase/firestore";
+import {
+  collection,
+  getDocs,
+  addDoc,
+  Timestamp,
+  doc,
+  updateDoc,
+  deleteDoc,
+} from "firebase/firestore";
 
 const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
 
@@ -18,11 +26,28 @@ interface FlashcardState {
     description: string,
     color: string
   ) => Promise<void>;
+  updateDeck: (
+    deckId: string,
+    language: Deck["language"],
+    updatedData: Partial<Deck>
+  ) => Promise<void>;
+  deleteDeck: (deckId: string, language: Deck["language"]) => Promise<void>;
   addCard: (
     language: Flashcard["language"],
     deckId: string,
     front: string,
     back: string
+  ) => Promise<void>;
+  updateCard: (
+    language: Flashcard["language"],
+    deckId: string,
+    cardId: string,
+    updatedData: Partial<Flashcard>
+  ) => Promise<void>;
+  deleteCard: (
+    language: Flashcard["language"],
+    deckId: string,
+    cardId: string
   ) => Promise<void>;
 }
 
@@ -102,6 +127,48 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     }));
   },
 
+  updateDeck: async (
+    deckId: string,
+    language: Deck["language"],
+    updatedData: Partial<Deck>
+  ) => {
+    try {
+      const deckRef = doc(db, `flashcards/${language}/decks/${deckId}`);
+      await updateDoc(deckRef, updatedData);
+
+      set((state) => ({
+        decks: state.decks.map((d) =>
+          d.id === deckId ? { ...d, ...updatedData } : d
+        ),
+      }));
+    } catch (err) {
+      console.error("Error updating deck:", err);
+    }
+  },
+
+  deleteDeck: async (deckId: string, language: Deck["language"]) => {
+    try {
+      const cardsToDelete = get().cards.filter((c) => c.deckId === deckId);
+      for (const card of cardsToDelete) {
+        const cardRef = doc(
+          db,
+          `flashcards/${language}/decks/${deckId}/cards/${card.id}`
+        );
+        await deleteDoc(cardRef);
+      }
+
+      const deckRef = doc(db, `flashcards/${language}/decks/${deckId}`);
+      await deleteDoc(deckRef);
+
+      set((state) => ({
+        decks: state.decks.filter((d) => d.id !== deckId),
+        cards: state.cards.filter((c) => c.deckId !== deckId),
+      }));
+    } catch (err) {
+      console.error("Error deleting deck:", err);
+    }
+  },
+
   addCard: async (language, deckId, front, back) => {
     const deck = get().decks.find((d) => d.id === deckId);
     const cardLanguage: Flashcard["language"] = deck?.language || language;
@@ -128,5 +195,48 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         { ...newCard, id: ref.id, language: cardLanguage },
       ],
     }));
+  },
+
+  updateCard: async (
+    language: Flashcard["language"],
+    deckId: string,
+    cardId: string,
+    updatedData: Partial<Flashcard>
+  ) => {
+    try {
+      const cardRef = doc(
+        db,
+        `flashcards/${language}/decks/${deckId}/cards/${cardId}`
+      );
+      await updateDoc(cardRef, updatedData);
+
+      set((state) => ({
+        cards: state.cards.map((c) =>
+          c.id === cardId ? { ...c, ...updatedData } : c
+        ),
+      }));
+    } catch (err) {
+      console.error("Error updating card:", err);
+    }
+  },
+
+  deleteCard: async (
+    language: Flashcard["language"],
+    deckId: string,
+    cardId: string
+  ) => {
+    try {
+      const cardRef = doc(
+        db,
+        `flashcards/${language}/decks/${deckId}/cards/${cardId}`
+      );
+      await deleteDoc(cardRef);
+
+      set((state) => ({
+        cards: state.cards.filter((c) => c.id !== cardId),
+      }));
+    } catch (err) {
+      console.error("Error deleting card:", err);
+    }
   },
 }));

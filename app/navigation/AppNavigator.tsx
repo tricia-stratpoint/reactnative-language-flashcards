@@ -9,10 +9,18 @@ import AchievementsScreen from "../screens/achievements";
 import SettingsScreen from "../screens/settings";
 import LoginScreen from "../screens/login";
 import SignUpScreen from "../screens/signup";
+import DeckDetailsScreen from "../screens/decksdetails";
 import { Colors } from "../constants/colors";
 
+export type RootStackParamList = {
+  Login: undefined;
+  SignUp: undefined;
+  MainTabs: undefined;
+  DeckDetails: { deckId: string; language: string };
+};
+
 const Tab = createBottomTabNavigator();
-const Stack = createNativeStackNavigator();
+const Stack = createNativeStackNavigator<RootStackParamList>();
 
 // Bottom Nav
 function MainTabs() {
@@ -83,6 +91,7 @@ export default function AppNavigator() {
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
+      <Stack.Screen name="DeckDetails" component={DeckDetailsScreen} />
     </Stack.Navigator>
   );
 }
