@@ -3,12 +3,13 @@ import { View, Text, StyleSheet, ScrollView } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Trophy, Target, Calendar, Star } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { useFlashcards } from "@/hooks/flashcard-store";
+import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
+import { Achievement } from "@/types/flashcard";
 
 export default function AchievementsScreen() {
   const insets = useSafeAreaInsets();
-  const { stats, isLoading } = useFlashcards();
+  const { stats, isLoading } = useFlashcardStore();
 
   if (isLoading) {
     return (
@@ -84,7 +85,7 @@ export default function AchievementsScreen() {
           <Text style={styles.sectionTitle}>Your Achievements</Text>
 
           <View style={styles.achievementsContainer}>
-            {stats.achievements.map((achievement) => {
+            {stats.achievements.map((achievement: Achievement) => {
               const isUnlocked = achievement.unlockedAt !== undefined;
               const progress = Math.min(
                 achievement.progress / achievement.target,

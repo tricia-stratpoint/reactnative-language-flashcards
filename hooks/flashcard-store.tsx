@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { Deck, Flashcard } from "@/types/flashcard";
+import { Deck, Flashcard, UserStats } from "@/types/flashcard";
 import { db } from "@/firebaseConfig";
 import {
   collection,
@@ -16,9 +16,11 @@ const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
 interface FlashcardState {
   decks: Deck[];
   cards: Flashcard[];
+  stats: UserStats;
   isLoading: boolean;
   setCards: (cards: Flashcard[]) => void;
   setDecks: (decks: Deck[]) => void;
+  setStats: (stats: UserStats) => void;
   loadAllLanguages: () => Promise<void>;
   createDeck: (
     language: Deck["language"],
@@ -54,10 +56,17 @@ interface FlashcardState {
 export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   decks: [],
   cards: [],
+  stats: {
+    totalCardsStudied: 0,
+    studyStreak: 0,
+    lastStudyDate: undefined,
+    totalStudyTime: 0,
+    achievements: [],
+  },
   isLoading: true,
-
   setCards: (cards) => set({ cards }),
   setDecks: (decks) => set({ decks }),
+  setStats: (stats) => set({ stats }),
 
   loadAllLanguages: async () => {
     set({ isLoading: true });
