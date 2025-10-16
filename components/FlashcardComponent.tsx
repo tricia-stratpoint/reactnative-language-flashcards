@@ -10,6 +10,9 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Flashcard } from "../types/flashcard";
+import { Volume2 } from "lucide-react-native";
+import { Colors } from "../app/constants/colors";
+import Tts from "react-native-tts";
 
 interface FlashcardComponentProps {
   card: Flashcard;
@@ -181,6 +184,7 @@ export default function FlashcardComponent({
               style={[styles.cardSide, styles.backSide, backAnimatedStyle]}
             >
               <Text style={styles.cardText}>{card.back}</Text>
+              <Volume2 size={20} style={styles.audioButton} />
               <Text style={styles.swipeHint}>Swipe to rate difficulty</Text>
             </Animated.View>
           </LinearGradient>
@@ -282,14 +286,20 @@ const styles = StyleSheet.create({
     position: "absolute",
     bottom: 30,
     fontSize: 14,
-    color: "#6b7280",
+    color: Colors.gray,
     fontWeight: "500",
+  },
+  audioButton: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    color: Colors.gray,
   },
   swipeHint: {
     position: "absolute",
     bottom: 30,
     fontSize: 14,
-    color: "#6b7280",
+    color: Colors.gray,
     fontWeight: "500",
   },
   overlay: {
