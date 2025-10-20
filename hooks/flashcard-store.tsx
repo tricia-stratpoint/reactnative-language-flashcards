@@ -332,7 +332,6 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         : 1;
 
     const newTotalCards = stats.totalCardsStudied + 1;
-    const now = Date.now();
 
     set({
       stats: {
