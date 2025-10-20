@@ -13,7 +13,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Flashcard } from "../types/flashcard";
 import { Volume2 } from "lucide-react-native";
 import { Colors } from "../app/constants/colors";
-import Tts, { TtsEvent } from "react-native-tts";
+import Tts from "react-native-tts";
 
 interface FlashcardComponentProps {
   card: Flashcard;
@@ -38,12 +38,7 @@ export default function FlashcardComponent({
       try {
         await Tts.setDefaultLanguage("en-US");
         await Tts.setDefaultPitch(1.0);
-
-        if (Platform.OS === "ios") {
-          await Tts.setDefaultRate(0.5);
-        } else {
-          await Tts.setDefaultRate(0.5, true);
-        }
+        await Tts.setDefaultRate(0.5, true);
       } catch (err) {
         console.warn("TTS setup error:", err);
       }
@@ -51,24 +46,28 @@ export default function FlashcardComponent({
 
     setupTts();
 
-    const onStart = (event: TtsEvent) => console.log("TTS start", event);
-    const onFinish = (event: TtsEvent) => console.log("TTS finish", event);
-    const onCancel = (event: TtsEvent) => console.log("TTS cancel", event);
-
-    Tts.addEventListener("tts-start", onStart);
-    Tts.addEventListener("tts-finish", onFinish);
-    Tts.addEventListener("tts-cancel", onCancel);
+    const startSub: any = Tts.addEventListener("tts-start", () =>
+      console.log("TTS start")
+    );
+    const finishSub: any = Tts.addEventListener("tts-finish", () =>
+      console.log("TTS finish")
+    );
+    const cancelSub: any = Tts.addEventListener("tts-cancel", () =>
+      console.log("TTS cancel")
+    );
 
     return () => {
-      Tts.removeEventListener("tts-start", onStart);
-      Tts.removeEventListener("tts-finish", onFinish);
-      Tts.removeEventListener("tts-cancel", onCancel);
+      startSub?.remove?.();
+      finishSub?.remove?.();
+      cancelSub?.remove?.();
     };
   }, []);
 
   const speakText = async () => {
     try {
-      await Tts.stop();
+      if (Platform.OS === "android") {
+        await Tts.stop();
+      }
       Tts.speak(card.back || "No text available.");
     } catch (err) {
       console.warn("TTS speak error:", err);
