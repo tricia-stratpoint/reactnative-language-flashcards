@@ -78,11 +78,6 @@ export default function StudyScreen({
     );
 
     setStudyCards(fetchedCards.slice(0, 10));
-
-    const existingCards = useFlashcardStore
-      .getState()
-      .cards.filter((c) => c.deckId !== deckId);
-    useFlashcardStore.getState().setCards([...existingCards, ...fetchedCards]);
   };
 
   useEffect(() => {
