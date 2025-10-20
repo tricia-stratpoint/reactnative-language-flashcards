@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -7,12 +7,13 @@ import {
   Animated,
   PanResponder,
   useWindowDimensions,
+  Platform,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Flashcard } from "../types/flashcard";
 import { Volume2 } from "lucide-react-native";
 import { Colors } from "../app/constants/colors";
-import Tts from "react-native-tts";
+import Tts, { TtsEvent } from "react-native-tts";
 
 interface FlashcardComponentProps {
   card: Flashcard;
@@ -31,6 +32,48 @@ export default function FlashcardComponent({
   const [flipAnimation] = useState(new Animated.Value(0));
   const [panAnimation] = useState(new Animated.ValueXY());
   const [scaleAnimation] = useState(new Animated.Value(1));
+
+  useEffect(() => {
+    const setupTts = async () => {
+      try {
+        await Tts.setDefaultLanguage("en-US");
+        await Tts.setDefaultPitch(1.0);
+
+        if (Platform.OS === "ios") {
+          await Tts.setDefaultRate(0.5);
+        } else {
+          await Tts.setDefaultRate(0.5, true);
+        }
+      } catch (err) {
+        console.warn("TTS setup error:", err);
+      }
+    };
+
+    setupTts();
+
+    const onStart = (event: TtsEvent) => console.log("TTS start", event);
+    const onFinish = (event: TtsEvent) => console.log("TTS finish", event);
+    const onCancel = (event: TtsEvent) => console.log("TTS cancel", event);
+
+    Tts.addEventListener("tts-start", onStart);
+    Tts.addEventListener("tts-finish", onFinish);
+    Tts.addEventListener("tts-cancel", onCancel);
+
+    return () => {
+      Tts.removeEventListener("tts-start", onStart);
+      Tts.removeEventListener("tts-finish", onFinish);
+      Tts.removeEventListener("tts-cancel", onCancel);
+    };
+  }, []);
+
+  const speakText = async () => {
+    try {
+      await Tts.stop();
+      Tts.speak(card.back || "No text available.");
+    } catch (err) {
+      console.warn("TTS speak error:", err);
+    }
+  };
 
   const panResponder = PanResponder.create({
     onStartShouldSetPanResponder: () => true,
@@ -57,17 +100,9 @@ export default function FlashcardComponent({
 
       if (Math.abs(dx) > swipeThreshold || Math.abs(vx) > velocityThreshold) {
         if (dx > 0) {
-          if (dx > screenWidth / 3) {
-            onSwipe("easy");
-          } else {
-            onSwipe("good");
-          }
+          onSwipe(dx > screenWidth / 3 ? "easy" : "good");
         } else {
-          if (Math.abs(dx) > screenWidth / 3) {
-            onSwipe("again");
-          } else {
-            onSwipe("hard");
-          }
+          onSwipe(Math.abs(dx) > screenWidth / 3 ? "again" : "hard");
         }
 
         Animated.timing(panAnimation, {
@@ -126,7 +161,7 @@ export default function FlashcardComponent({
     Animated.timing(flipAnimation, {
       toValue: newFlipped ? 180 : 0,
       duration: 600,
-      useNativeDriver: true,
+      useNativeDriver: false,
     }).start();
   };
 
@@ -183,8 +218,12 @@ export default function FlashcardComponent({
             <Animated.View
               style={[styles.cardSide, styles.backSide, backAnimatedStyle]}
             >
+              <View style={styles.audioButtonContainer}>
+                <TouchableOpacity onPress={speakText}>
+                  <Volume2 size={24} color={Colors.gray} />
+                </TouchableOpacity>
+              </View>
               <Text style={styles.cardText}>{card.back}</Text>
-              <Volume2 size={20} style={styles.audioButton} />
               <Text style={styles.swipeHint}>Swipe to rate difficulty</Text>
             </Animated.View>
           </LinearGradient>
@@ -202,38 +241,17 @@ export default function FlashcardComponent({
       </Animated.View>
 
       <View style={[styles.indicators, { width: CARD_WIDTH }]}>
-        <View
-          style={[
-            styles.indicator,
-            { backgroundColor: getDifficultyColor("again") },
-          ]}
-        >
-          <Text style={styles.indicatorText}>Again</Text>
-        </View>
-        <View
-          style={[
-            styles.indicator,
-            { backgroundColor: getDifficultyColor("hard") },
-          ]}
-        >
-          <Text style={styles.indicatorText}>Hard</Text>
-        </View>
-        <View
-          style={[
-            styles.indicator,
-            { backgroundColor: getDifficultyColor("good") },
-          ]}
-        >
-          <Text style={styles.indicatorText}>Good</Text>
-        </View>
-        <View
-          style={[
-            styles.indicator,
-            { backgroundColor: getDifficultyColor("easy") },
-          ]}
-        >
-          <Text style={styles.indicatorText}>Easy</Text>
-        </View>
+        {["again", "hard", "good", "easy"].map((level) => (
+          <View
+            key={level}
+            style={[
+              styles.indicator,
+              { backgroundColor: getDifficultyColor(level) },
+            ]}
+          >
+            <Text style={styles.indicatorText}>{level}</Text>
+          </View>
+        ))}
       </View>
     </View>
   );
@@ -289,6 +307,12 @@ const styles = StyleSheet.create({
     color: Colors.gray,
     fontWeight: "500",
   },
+  audioButtonContainer: {
+    position: "absolute",
+    top: 10,
+    right: 10,
+    zIndex: 10,
+  },
   audioButton: {
     position: "absolute",
     top: 10,
@@ -327,5 +351,6 @@ const styles = StyleSheet.create({
     color: "#ffffff",
     fontSize: 12,
     fontWeight: "600",
+    textTransform: "capitalize",
   },
 });
