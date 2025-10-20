@@ -15,6 +15,12 @@ import { Volume2 } from "lucide-react-native";
 import { Colors } from "../app/constants/colors";
 import Tts from "react-native-tts";
 
+const LANGUAGE_CODES: Record<Flashcard["language"], string> = {
+  spanish: "es-ES",
+  french: "fr-FR",
+  custom: "en-US",
+};
+
 interface FlashcardComponentProps {
   card: Flashcard;
   onSwipe: (direction: "again" | "hard" | "good" | "easy") => void;
@@ -68,6 +74,10 @@ export default function FlashcardComponent({
       if (Platform.OS === "android") {
         await Tts.stop();
       }
+
+      const langCode = LANGUAGE_CODES[card.language] || "en-US";
+      await Tts.setDefaultLanguage(langCode);
+
       Tts.speak(card.back || "No text available.");
     } catch (err) {
       console.warn("TTS speak error:", err);
