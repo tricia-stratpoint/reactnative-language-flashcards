@@ -241,15 +241,16 @@ export default function FlashcardComponent({
 
       <View style={[styles.indicators, { width: CARD_WIDTH }]}>
         {["again", "hard", "good", "easy"].map((level) => (
-          <View
+          <TouchableOpacity
             key={level}
             style={[
               styles.indicator,
               { backgroundColor: getDifficultyColor(level) },
             ]}
+            onPress={() => onSwipe(level as "again" | "hard" | "good" | "easy")}
           >
             <Text style={styles.indicatorText}>{level}</Text>
-          </View>
+          </TouchableOpacity>
         ))}
       </View>
     </View>
