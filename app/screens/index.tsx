@@ -77,7 +77,7 @@ export default function StudyScreen({
       (doc) => ({ id: doc.id, language: deckLang, ...doc.data() } as Flashcard)
     );
 
-    setStudyCards(fetchedCards.slice(0, 10));
+    setStudyCards(fetchedCards);
   };
 
   useEffect(() => {
@@ -99,14 +99,25 @@ export default function StudyScreen({
     if (!currentCard) return;
 
     const isCorrect = difficulty === "good" || difficulty === "easy";
+
+    // update local session stats
     setSessionStats((prev) => ({
       studied: prev.studied + 1,
       correct: prev.correct + (isCorrect ? 1 : 0),
     }));
-    // const updatedCards: Flashcard[] = cards.map((card: Flashcard) =>
-    //   card.id === currentCard.id ? { ...card, difficulty } : card
-    // );
-    // setCards(updatedCards);
+
+    // update card difficulty in global store
+    const updatedCards: Flashcard[] = cards.map((card) =>
+      card.id === currentCard.id ? { ...card, difficulty } : card
+    );
+    setCards(updatedCards);
+
+    // update global stats
+    const prevStats = useFlashcardStore.getState().stats;
+    useFlashcardStore.getState().updateAchievements({
+      totalCardsStudied: prevStats.totalCardsStudied + 1,
+      perfectSession: isCorrect,
+    });
 
     if (currentCardIndex < studyCards.length - 1) {
       setCurrentCardIndex((prev) => prev + 1);

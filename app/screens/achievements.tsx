@@ -35,7 +35,10 @@ export default function AchievementsScreen() {
     const diffTime = today.getTime() - lastStudy.getTime();
     const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
 
-    return diffDays <= 1 ? stats.studyStreak : 0;
+    if (diffDays === 0 || diffDays === 1) {
+      return stats.studyStreak;
+    }
+    return 0;
   };
 
   const formatStudyTime = (minutes: number) => {

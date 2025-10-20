@@ -339,7 +339,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         ...stats,
         totalCardsStudied: newTotalCards,
         studyStreak: newStreak,
-        lastStudyDate: now,
+        lastStudyDate: Date.now(),
       },
     });
 
