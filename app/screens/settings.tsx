@@ -27,8 +27,24 @@ export default function SettingsScreen() {
   const navigation = useNavigation();
   const [showClearModal, setShowClearModal] = React.useState(false);
   const [showAboutModal, setShowAboutModal] = React.useState(false);
+  const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
   const handleLogout = async () => {
+    try {
+      await signOut(auth);
+      navigation.reset({
+        index: 0,
+        routes: [{ name: "Login" as never }],
+      });
+      console.log("User logged out");
+    } catch (error) {
+      console.log("Logout error:", error);
+    }
+  };
+
+  const handleLogoutPress = () => setShowLogoutModal(true);
+  const confirmLogout = async () => {
+    setShowLogoutModal(false);
     try {
       await signOut(auth);
       navigation.reset({
@@ -62,7 +78,10 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
 
-            <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleLogoutPress}
+            >
               <View style={styles.settingLeft}>
                 <View
                   style={[styles.settingIcon, { backgroundColor: Colors.red }]}
@@ -306,6 +325,32 @@ export default function SettingsScreen() {
               >
                 <Text style={styles.primaryButtonText}>OK</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Logout Modal */}
+        <Modal visible={showLogoutModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Confirm Logout</Text>
+              <Text style={styles.modalText}>
+                Are you sure you want to log out?
+              </Text>
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowLogoutModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.destructiveButton]}
+                  onPress={confirmLogout}
+                >
+                  <Text style={styles.destructiveButtonText}>Logout</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
