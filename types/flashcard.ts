@@ -39,7 +39,7 @@ export interface Achievement {
   title: string;
   description: string;
   icon: string;
-  unlockedAt?: number;
+  unlockedAt?: number | null;
   progress: number;
   target: number;
 }
@@ -47,7 +47,8 @@ export interface Achievement {
 export interface UserStats {
   totalCardsStudied: number;
   studyStreak: number;
-  lastStudyDate?: number;
+  lastStudyDate: number | null;
   totalStudyTime: number;
   achievements: Achievement[];
+  cardsStudiedToday: string[];
 }

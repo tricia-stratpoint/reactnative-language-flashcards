@@ -86,7 +86,7 @@ export default function AchievementsScreen() {
 
           <View style={styles.achievementsContainer}>
             {stats.achievements.map((achievement: Achievement) => {
-              const isUnlocked = achievement.unlockedAt !== undefined;
+              const isUnlocked = achievement.unlockedAt !== null;
               const progress = Math.min(
                 achievement.progress / achievement.target,
                 1

@@ -1,10 +1,11 @@
 import { create } from "zustand";
 import { Deck, Flashcard, UserStats } from "@/types/flashcard";
-import { db } from "@/firebaseConfig";
+import { db, auth } from "@/firebaseConfig";
 import {
   collection,
   getDocs,
   getDoc,
+  setDoc,
   addDoc,
   Timestamp,
   doc,
@@ -14,6 +15,40 @@ import {
 
 const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
 
+const DEFAULT_ACHIEVEMENTS = [
+  {
+    id: "first_card",
+    title: "First Steps",
+    description: "Study your first flashcard",
+    icon: "🎯",
+    progress: 0,
+    target: 1,
+  },
+  {
+    id: "study_streak_7",
+    title: "Week Warrior",
+    description: "Study for 7 days in a row",
+    icon: "🔥",
+    progress: 0,
+    target: 7,
+  },
+  {
+    id: "cards_100",
+    title: "Century Club",
+    description: "Study 100 flashcards",
+    icon: "💯",
+    progress: 0,
+    target: 100,
+  },
+  {
+    id: "perfect_session",
+    title: "Perfect Score",
+    description: "Get 100% correct in a study session",
+    icon: "⭐",
+    progress: 0,
+    target: 1,
+  },
+];
 interface FlashcardState {
   decks: Deck[];
   cards: Flashcard[];
@@ -56,7 +91,7 @@ interface FlashcardState {
   updateAchievements: (
     newStats: Partial<UserStats> & { perfectSession?: boolean }
   ) => void;
-  studyCard: (isPerfectSession: boolean) => void;
+  studyCard: (cardId: string, isPerfectSession: boolean) => void;
 }
 
 export const useFlashcardStore = create<FlashcardState>((set, get) => ({
@@ -65,9 +100,10 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   stats: {
     totalCardsStudied: 0,
     studyStreak: 0,
-    lastStudyDate: undefined,
+    lastStudyDate: null,
     totalStudyTime: 0,
     achievements: [],
+    cardsStudiedToday: [],
   },
   isLoading: true,
   setCards: (cards) => set({ cards }),
@@ -258,68 +294,132 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
   fetchAchievements: async () => {
     try {
-      const statsRef = doc(db, "stats", "default");
+      const user = auth.currentUser;
+      if (!user) throw new Error("No authenticated user");
+
+      // create or update the user document
+      const userRef = doc(db, "users", user.uid);
+      await setDoc(
+        userRef,
+        {
+          username: user.displayName || "Unnamed User",
+          email: user.email || "",
+          createdAt: Timestamp.now(),
+        },
+        { merge: true }
+      );
+
+      // fetch or initialize stats
+      const statsRef = doc(db, "users", user.uid, "stats", "progress");
       const snapshot = await getDoc(statsRef);
 
       if (snapshot.exists()) {
         const data = snapshot.data();
-
         set((state) => ({
           stats: {
             ...state.stats,
             totalCardsStudied: data.totalCardsStudied ?? 0,
             studyStreak: data.studyStreak ?? 0,
-            lastStudyDate: data.lastStudyDate ?? null,
+            lastStudyDate: data.lastStudyDate?.toMillis() ?? null,
             totalStudyTime: data.totalStudyTime ?? 0,
-            achievements: data.achievements ?? [],
+            cardsStudiedToday: data.cardsStudiedToday ?? [],
+            achievements:
+              data.achievements && data.achievements.length > 0
+                ? data.achievements
+                : DEFAULT_ACHIEVEMENTS,
           },
         }));
       } else {
-        console.warn("No stats document found at /stats/default");
+        console.log("No stats document found — creating default user stats...");
+        const defaultStats: UserStats = {
+          totalCardsStudied: 0,
+          studyStreak: 0,
+          lastStudyDate: null,
+          totalStudyTime: 0,
+          achievements: DEFAULT_ACHIEVEMENTS,
+          cardsStudiedToday: [],
+        };
+
+        await setDoc(statsRef, defaultStats);
+        set({ stats: defaultStats });
       }
     } catch (err) {
-      console.error("Error fetching achievements from Firestore:", err);
+      console.error("Error fetching achievements:", err);
     }
   },
 
-  updateAchievements: (
+  updateAchievements: async (
     newStats: Partial<UserStats> & { perfectSession?: boolean }
   ) => {
     set((state) => {
       const now = Date.now();
+      const updatedStats = { ...state.stats, ...newStats };
+
       const achievements = state.stats.achievements.map((a) => {
         let progress = a.progress;
 
-        if (
-          a.id === "first_card" &&
-          newStats.totalCardsStudied &&
-          newStats.totalCardsStudied >= 1
-        ) {
-          progress = 1;
-        } else if (a.id === "cards_100" && newStats.totalCardsStudied) {
-          progress = Math.min(newStats.totalCardsStudied, a.target);
-        } else if (a.id === "study_streak_7" && newStats.studyStreak) {
-          progress = Math.min(newStats.studyStreak, a.target);
-        } else if (a.id === "perfect_session" && newStats.perfectSession) {
-          progress = 1;
+        switch (a.id) {
+          case "first_card":
+            progress = Math.min(updatedStats.totalCardsStudied, a.target);
+            break;
+          case "cards_100":
+            progress = Math.min(updatedStats.totalCardsStudied, a.target);
+            break;
+          case "study_streak_7":
+            progress = Math.min(updatedStats.studyStreak, a.target);
+            break;
+          case "perfect_session":
+            progress = newStats.perfectSession ? 1 : a.progress;
+            break;
         }
 
-        const unlockedAt = progress >= a.target ? now : a.unlockedAt;
+        // Only unlock if progress reaches target and not already unlocked
+        const unlockedAt = a.unlockedAt ?? (progress >= a.target ? now : null);
 
         return { ...a, progress, unlockedAt };
       });
 
-      return { stats: { ...state.stats, ...newStats, achievements } };
+      return { stats: { ...updatedStats, achievements } };
     });
+
+    // save to firestore
+    try {
+      const user = auth.currentUser;
+      if (!user) throw new Error("No authenticated user");
+
+      const statsRef = doc(db, "users", user.uid, "stats", "progress");
+      const currentStats = get().stats;
+      await updateDoc(statsRef, {
+        totalCardsStudied: currentStats.totalCardsStudied ?? 0,
+        studyStreak: currentStats.studyStreak ?? 0,
+        lastStudyDate: currentStats.lastStudyDate ?? null,
+        totalStudyTime: currentStats.totalStudyTime ?? 0,
+        achievements: currentStats.achievements ?? [],
+        cardsStudiedToday: currentStats.cardsStudiedToday ?? [],
+        updatedAt: new Date(),
+      });
+    } catch (err) {
+      console.error("Error updating Firestore stats:", err);
+    }
   },
 
-  studyCard: (perfectSession) => {
-    const today = new Date();
-    const yesterday = new Date(today);
-    yesterday.setDate(today.getDate() - 1);
-
+  studyCard: (cardId: string, perfectSession: boolean) => {
     const { stats } = get();
+    const todayStr = new Date().toDateString();
+
+    let cardsStudiedToday =
+      stats.lastStudyDate &&
+      new Date(stats.lastStudyDate).toDateString() === todayStr
+        ? [...stats.cardsStudiedToday]
+        : [];
+
+    if (cardsStudiedToday.includes(cardId)) return;
+
+    cardsStudiedToday.push(cardId);
+
     const lastDate = stats.lastStudyDate ? new Date(stats.lastStudyDate) : null;
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
 
     const newStreak =
       lastDate && lastDate.toDateString() === yesterday.toDateString()
@@ -334,6 +434,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         totalCardsStudied: newTotalCards,
         studyStreak: newStreak,
         lastStudyDate: Date.now(),
+        cardsStudiedToday,
       },
     });
 
