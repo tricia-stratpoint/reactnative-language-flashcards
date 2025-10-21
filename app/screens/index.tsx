@@ -39,6 +39,7 @@ export default function StudyScreen({
   useEffect(() => {
     const init = async () => {
       await loadAllLanguages();
+      await useFlashcardStore.getState().fetchAchievements();
     };
     init();
   }, [loadAllLanguages]);

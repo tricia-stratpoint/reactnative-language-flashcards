@@ -4,6 +4,7 @@ import { db } from "@/firebaseConfig";
 import {
   collection,
   getDocs,
+  getDoc,
   addDoc,
   Timestamp,
   doc,
@@ -51,6 +52,7 @@ interface FlashcardState {
     deckId: string,
     cardId: string
   ) => Promise<void>;
+  fetchAchievements: () => Promise<void>;
   updateAchievements: (
     newStats: Partial<UserStats> & { perfectSession?: boolean }
   ) => void;
@@ -65,40 +67,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     studyStreak: 0,
     lastStudyDate: undefined,
     totalStudyTime: 0,
-    achievements: [
-      {
-        id: "first_card",
-        title: "First Steps",
-        description: "Study your first flashcard",
-        icon: "🎯",
-        progress: 0,
-        target: 1,
-      },
-      {
-        id: "study_streak_7",
-        title: "Week Warrior",
-        description: "Study for 7 days in a row",
-        icon: "🔥",
-        progress: 0,
-        target: 7,
-      },
-      {
-        id: "cards_100",
-        title: "Century Club",
-        description: "Study 100 flashcards",
-        icon: "💯",
-        progress: 0,
-        target: 100,
-      },
-      {
-        id: "perfect_session",
-        title: "Perfect Score",
-        description: "Get 100% correct in a study session",
-        icon: "⭐",
-        progress: 0,
-        target: 1,
-      },
-    ],
+    achievements: [],
   },
   isLoading: true,
   setCards: (cards) => set({ cards }),
@@ -284,6 +253,32 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       }));
     } catch (err) {
       console.error("Error deleting card:", err);
+    }
+  },
+
+  fetchAchievements: async () => {
+    try {
+      const statsRef = doc(db, "stats", "default");
+      const snapshot = await getDoc(statsRef);
+
+      if (snapshot.exists()) {
+        const data = snapshot.data();
+
+        set((state) => ({
+          stats: {
+            ...state.stats,
+            totalCardsStudied: data.totalCardsStudied ?? 0,
+            studyStreak: data.studyStreak ?? 0,
+            lastStudyDate: data.lastStudyDate ?? null,
+            totalStudyTime: data.totalStudyTime ?? 0,
+            achievements: data.achievements ?? [],
+          },
+        }));
+      } else {
+        console.warn("No stats document found at /stats/default");
+      }
+    } catch (err) {
+      console.error("Error fetching achievements from Firestore:", err);
     }
   },
 
