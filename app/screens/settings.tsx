@@ -8,14 +8,7 @@ import {
   Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import {
-  Settings as SettingsIcon,
-  Trash2,
-  Download,
-  Upload,
-  Info,
-  LogOut,
-} from "lucide-react-native";
+import { Trash2, Download, Bell, Info, LogOut } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
 import { signOut } from "firebase/auth";
@@ -29,20 +22,7 @@ export default function SettingsScreen() {
   const [showAboutModal, setShowAboutModal] = React.useState(false);
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
 
-  const handleLogout = async () => {
-    try {
-      await signOut(auth);
-      navigation.reset({
-        index: 0,
-        routes: [{ name: "Login" as never }],
-      });
-      console.log("User logged out");
-    } catch (error) {
-      console.log("Logout error:", error);
-    }
-  };
-
-  const handleLogoutPress = () => setShowLogoutModal(true);
+  const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
     setShowLogoutModal(false);
     try {
@@ -58,8 +38,6 @@ export default function SettingsScreen() {
   };
 
   const handleClearData = () => setShowClearModal(true);
-  const handleExportData = () => {};
-  const handleImportData = () => {};
   const showAbout = () => {
     setShowAboutModal(true);
   };
@@ -78,13 +56,10 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Account</Text>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleLogoutPress}
-            >
+            <TouchableOpacity style={styles.settingItem} onPress={handleLogout}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[styles.settingIcon, { backgroundColor: Colors.red }]}
+                  style={[styles.settingIcon, { backgroundColor: Colors.blue }]}
                 >
                   <LogOut size={20} color={Colors.white} />
                 </View>
@@ -101,42 +76,17 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Data Management</Text>
 
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleExportData}
-            >
+            <TouchableOpacity style={styles.settingItem}>
               <View style={styles.settingLeft}>
                 <View
-                  style={[
-                    styles.settingIcon,
-                    { backgroundColor: Colors.greenDark },
-                  ]}
+                  style={[styles.settingIcon, { backgroundColor: Colors.pink }]}
                 >
                   <Download size={20} color={Colors.white} />
                 </View>
                 <View>
-                  <Text style={styles.settingTitle}>Export Data</Text>
+                  <Text style={styles.settingTitle}>Downloaded Content</Text>
                   <Text style={styles.settingDescription}>
-                    Backup your flashcards and progress
-                  </Text>
-                </View>
-              </View>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              style={styles.settingItem}
-              onPress={handleImportData}
-            >
-              <View style={styles.settingLeft}>
-                <View
-                  style={[styles.settingIcon, { backgroundColor: Colors.blue }]}
-                >
-                  <Upload size={20} color={Colors.white} />
-                </View>
-                <View>
-                  <Text style={styles.settingTitle}>Import Data</Text>
-                  <Text style={styles.settingDescription}>
-                    Restore from a backup file
+                    View your offline decks and cards
                   </Text>
                 </View>
               </View>
@@ -153,9 +103,9 @@ export default function SettingsScreen() {
                   <Trash2 size={20} color={Colors.white} />
                 </View>
                 <View>
-                  <Text style={styles.settingTitle}>Clear All Data</Text>
+                  <Text style={styles.settingTitle}>Reset Progress</Text>
                   <Text style={styles.settingDescription}>
-                    Delete all decks and progress
+                    Delete all progress and achievements
                   </Text>
                 </View>
               </View>
@@ -163,26 +113,7 @@ export default function SettingsScreen() {
           </View>
 
           <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Study Settings</Text>
-
-            <View style={styles.settingItem}>
-              <View style={styles.settingLeft}>
-                <View
-                  style={[
-                    styles.settingIcon,
-                    { backgroundColor: Colors.purple },
-                  ]}
-                >
-                  <SettingsIcon size={20} color={Colors.white} />
-                </View>
-                <View>
-                  <Text style={styles.settingTitle}>Daily New Cards</Text>
-                  <Text style={styles.settingDescription}>
-                    Maximum new cards per day: 10
-                  </Text>
-                </View>
-              </View>
-            </View>
+            <Text style={styles.sectionTitle}>App Settings</Text>
 
             <View style={styles.settingItem}>
               <View style={styles.settingLeft}>
@@ -192,12 +123,12 @@ export default function SettingsScreen() {
                     { backgroundColor: Colors.orange },
                   ]}
                 >
-                  <SettingsIcon size={20} color={Colors.white} />
+                  <Bell size={20} color={Colors.white} />
                 </View>
                 <View>
-                  <Text style={styles.settingTitle}>Review Limit</Text>
+                  <Text style={styles.settingTitle}>Notifications</Text>
                   <Text style={styles.settingDescription}>
-                    Maximum reviews per day: Unlimited
+                    Set your notification preferences
                   </Text>
                 </View>
               </View>
@@ -296,10 +227,6 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalButton, styles.destructiveButton]}
-                  onPress={() => {
-                    setShowClearModal(false);
-                    // Clear data functionality would go here
-                  }}
                 >
                   <Text style={styles.destructiveButtonText}>Clear Data</Text>
                 </TouchableOpacity>
