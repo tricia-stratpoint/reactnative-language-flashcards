@@ -13,6 +13,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
 import { signOut } from "firebase/auth";
 import { auth } from "@/firebaseConfig";
+import { resetUserProgress } from "@/hooks/flashcard-store";
 import { useNavigation } from "@react-navigation/native";
 
 export default function SettingsScreen() {
@@ -227,6 +228,11 @@ export default function SettingsScreen() {
                 </TouchableOpacity>
                 <TouchableOpacity
                   style={[styles.modalButton, styles.destructiveButton]}
+                  onPress={async () => {
+                    await resetUserProgress();
+                    setShowClearModal(false);
+                    navigation.goBack();
+                  }}
                 >
                   <Text style={styles.destructiveButtonText}>Clear Data</Text>
                 </TouchableOpacity>

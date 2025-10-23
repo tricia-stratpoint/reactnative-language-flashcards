@@ -445,3 +445,44 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     });
   },
 }));
+
+export const resetUserProgress = async () => {
+  try {
+    const user = auth.currentUser;
+    if (!user) throw new Error("No authenticated user");
+
+    const statsRef = doc(db, "users", user.uid, "stats", "progress");
+
+    // reset in firestore
+    const resetAchievements = DEFAULT_ACHIEVEMENTS.map((a) => ({
+      ...a,
+      progress: 0,
+      unlockedAt: null,
+    }));
+
+    await setDoc(statsRef, {
+      totalCardsStudied: 0,
+      studyStreak: 0,
+      lastStudyDate: null,
+      totalStudyTime: 0,
+      achievements: resetAchievements,
+      cardsStudiedToday: [],
+      updatedAt: new Date(),
+    });
+
+    // reset zustand
+    const { setStats } = useFlashcardStore.getState();
+    setStats({
+      totalCardsStudied: 0,
+      studyStreak: 0,
+      lastStudyDate: null,
+      totalStudyTime: 0,
+      achievements: resetAchievements,
+      cardsStudiedToday: [],
+    });
+
+    console.log("User progress reset successfully!");
+  } catch (err) {
+    console.error("Error resetting progress:", err);
+  }
+};
