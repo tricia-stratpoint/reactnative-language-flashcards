@@ -8,8 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Colors } from "../constants/colors";
-import { auth } from "@/firebaseConfig";
-import { createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
+import { getAuth } from "@/firebaseConfig";
 
 export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [username, setUsername] = useState("");
@@ -17,6 +16,7 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const authInstance = getAuth();
 
   const handleSignUp = async () => {
     setError("");
@@ -38,12 +38,15 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
     }
 
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
+      const userCredential = await authInstance.createUserWithEmailAndPassword(
         email,
         password
       );
-      await updateProfile(userCredential.user, { displayName: username });
+
+      if (userCredential.user) {
+        await userCredential.user.updateProfile({ displayName: username });
+      }
+
       console.log("User registered:", userCredential.user);
       navigation.replace("Login");
     } catch (error: any) {

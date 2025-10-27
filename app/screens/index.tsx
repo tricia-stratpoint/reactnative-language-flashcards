@@ -13,8 +13,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Flashcard, Deck } from "@/types/flashcard";
 import FlashcardComponent from "@/components/FlashcardComponent";
 import { Colors } from "../constants/colors";
-import { auth, db } from "@/firebaseConfig";
-import { collection, getDocs } from "firebase/firestore";
+import auth from "@react-native-firebase/auth";
+import firestore from "@react-native-firebase/firestore";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 
 export default function StudyScreen({
@@ -71,9 +71,13 @@ export default function StudyScreen({
     deckId: string,
     deckLang: Deck["language"]
   ) => {
-    const snapshot = await getDocs(
-      collection(db, `flashcards/${deckLang}/decks/${deckId}/cards`)
-    );
+    const snapshot = await firestore()
+      .collection("flashcards")
+      .doc(deckLang)
+      .collection("decks")
+      .doc(deckId)
+      .collection("cards")
+      .get();
     const fetchedCards: Flashcard[] = snapshot.docs.map(
       (doc) => ({ id: doc.id, language: deckLang, ...doc.data() } as Flashcard)
     );
@@ -82,7 +86,7 @@ export default function StudyScreen({
   };
 
   useEffect(() => {
-    const user = auth.currentUser;
+    const user = auth().currentUser;
     if (user && user.displayName) setUsername(user.displayName);
   }, []);
 

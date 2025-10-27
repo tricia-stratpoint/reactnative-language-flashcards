@@ -11,10 +11,15 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Trash2, Download, Bell, Info, LogOut } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
-import { signOut } from "firebase/auth";
-import { auth } from "@/firebaseConfig";
+import auth from "@react-native-firebase/auth";
 import { resetUserProgress } from "@/hooks/flashcard-store";
 import { useNavigation } from "@react-navigation/native";
+import {
+  requestNotificationPermission,
+  getFcmToken,
+  setupForegroundListener,
+  showTestNotification,
+} from "../utils/notifications";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -27,7 +32,7 @@ export default function SettingsScreen() {
   const confirmLogout = async () => {
     setShowLogoutModal(false);
     try {
-      await signOut(auth);
+      await auth().signOut();
       navigation.reset({
         index: 0,
         routes: [{ name: "Login" as never }],
@@ -39,8 +44,19 @@ export default function SettingsScreen() {
   };
 
   const handleClearData = () => setShowClearModal(true);
-  const showAbout = () => {
-    setShowAboutModal(true);
+  const showAbout = () => setShowAboutModal(true);
+
+  React.useEffect(() => {
+    setupForegroundListener();
+  }, []);
+
+  const handleEnableNotifications = async () => {
+    await requestNotificationPermission();
+    await getFcmToken();
+  };
+
+  const handleTestNotification = async () => {
+    await showTestNotification();
   };
 
   return (
@@ -116,7 +132,10 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>App Settings</Text>
 
-            <View style={styles.settingItem}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleEnableNotifications}
+            >
               <View style={styles.settingLeft}>
                 <View
                   style={[
@@ -133,7 +152,29 @@ export default function SettingsScreen() {
                   </Text>
                 </View>
               </View>
-            </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={handleTestNotification}
+            >
+              <View style={styles.settingLeft}>
+                <View
+                  style={[
+                    styles.settingIcon,
+                    { backgroundColor: Colors.purple },
+                  ]}
+                >
+                  <Bell size={20} color={Colors.white} />
+                </View>
+                <View>
+                  <Text style={styles.settingTitle}>Test Notification</Text>
+                  <Text style={styles.settingDescription}>
+                    Tap to send a test notification
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
           </View>
 
           <View style={styles.section}>

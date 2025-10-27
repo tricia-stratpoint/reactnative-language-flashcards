@@ -1,13 +1,13 @@
-import { Timestamp } from "firebase/firestore";
+import type { FirebaseFirestoreTypes } from "@react-native-firebase/firestore";
 
 export interface Flashcard {
   id: string;
   front: string;
   back: string;
   deckId: string;
-  createdAt: number | Timestamp;
-  lastReviewed?: number | Timestamp;
-  nextReview: number | Timestamp;
+  createdAt: number | FirebaseFirestoreTypes.Timestamp;
+  lastReviewed?: number | FirebaseFirestoreTypes.Timestamp;
+  nextReview: number | FirebaseFirestoreTypes.Timestamp;
   interval: number;
   easeFactor: number;
   repetitions: number;

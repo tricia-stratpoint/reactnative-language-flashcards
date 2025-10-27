@@ -20,7 +20,10 @@ target 'PocketLingo' do
 
   pod 'Firebase/CoreOnly'
   pod 'FirebaseMessaging'
-  
+  pod 'Firebase/Core'
+  pod 'Firebase/Auth'
+  pod 'Firebase/Firestore'
+
   use_frameworks! :linkage => :static
 
   if ENV['EXPO_USE_COMMUNITY_AUTOLINKING'] == '1'

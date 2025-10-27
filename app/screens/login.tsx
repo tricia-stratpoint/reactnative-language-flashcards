@@ -6,17 +6,16 @@ import {
   TouchableOpacity,
   Image,
   StyleSheet,
-  Alert,
 } from "react-native";
 import { Colors } from "../constants/colors";
-import { auth } from "@/firebaseConfig";
-import { signInWithEmailAndPassword } from "firebase/auth";
+import { getAuth } from "@/firebaseConfig";
 
 export default function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const authInstance = getAuth();
 
   const validateInputs = () => {
     if (!email.trim() || !password.trim()) {
@@ -40,8 +39,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
     if (!validateInputs()) return;
 
     try {
-      const userCredential = await signInWithEmailAndPassword(
-        auth,
+      const userCredential = await authInstance.signInWithEmailAndPassword(
         email,
         password
       );

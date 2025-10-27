@@ -4,8 +4,7 @@ import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer } from "@react-navigation/native";
-import { onAuthStateChanged } from "firebase/auth";
-import { auth } from "./firebaseConfig";
+import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import AppNavigator from "./app/navigation/AppNavigator";
 import { Colors } from "./app/constants/colors";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
@@ -16,16 +15,19 @@ SplashScreen.preventAutoHideAsync();
 export default function App() {
   useEffect(() => {
     const { fetchAchievements } = useFlashcardStore.getState();
+    const authInstance = auth();
 
-    const unsubscribe = onAuthStateChanged(auth, async (currentUser) => {
-      console.log("Auth state changed:", currentUser?.email || "No user");
+    const unsubscribe = authInstance.onAuthStateChanged(
+      async (currentUser: FirebaseAuthTypes.User | null) => {
+        console.log("Auth state changed:", currentUser?.email || "No user");
 
-      if (currentUser) {
-        await fetchAchievements();
+        if (currentUser) {
+          await fetchAchievements();
+        }
+
+        SplashScreen.hideAsync();
       }
-
-      SplashScreen.hideAsync();
-    });
+    );
 
     return unsubscribe;
   }, []);
