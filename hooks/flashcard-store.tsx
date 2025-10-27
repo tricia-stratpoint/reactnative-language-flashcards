@@ -1,12 +1,9 @@
 import { create } from "zustand";
 import { Deck, Flashcard, UserStats } from "@/types/flashcard";
-import { getAuth, getDb } from "@/firebaseConfig";
 import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
-
-const authInstance = getAuth();
-const db = getDb();
+import auth from "@react-native-firebase/auth";
 
 const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
 
@@ -46,7 +43,7 @@ const DEFAULT_ACHIEVEMENTS = [
 ];
 
 const toMillis = (ts?: FirebaseFirestoreTypes.Timestamp | number | Date) =>
-  ts instanceof FirebaseFirestoreTypes.Timestamp
+  ts instanceof firestore.Timestamp
     ? ts.toDate().getTime()
     : ts instanceof Date
     ? ts.getTime()
@@ -119,14 +116,16 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       const allCards: Flashcard[] = [];
 
       for (const lang of SUPPORTED_LANGUAGES) {
-        const decksSnap = await db.collection(`flashcards/${lang}/decks`).get();
+        const decksSnap = await firestore()
+          .collection(`flashcards/${lang}/decks`)
+          .get();
         const loadedDecks = decksSnap.docs.map(
           (doc) => ({ id: doc.id, language: lang, ...doc.data() } as Deck)
         );
         allDecks.push(...loadedDecks);
 
         for (const deck of loadedDecks) {
-          const cardsSnap = await db
+          const cardsSnap = await firestore()
             .collection(`flashcards/${lang}/decks/${deck.id}/cards`)
             .get();
           const deckCards = cardsSnap.docs.map((doc) => {
@@ -164,8 +163,8 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     const deckLanguage = name.toLowerCase().includes("custom")
       ? "custom"
       : language;
-    const newDeck: Omit<Deck, "id" | "language"> = { name, description, color };
-    const ref = await db
+    const newDeck = { name, description, color };
+    const ref = await firestore()
       .collection(`flashcards/${deckLanguage}/decks`)
       .add({ ...newDeck, createdAt: firestore.FieldValue.serverTimestamp() });
     set((state) => ({
@@ -178,7 +177,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
   updateDeck: async (deckId, language, updatedData) => {
     try {
-      await db
+      await firestore()
         .doc(`flashcards/${language}/decks/${deckId}`)
         .update(updatedData);
       set((state) => ({
@@ -194,12 +193,11 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   deleteDeck: async (deckId, language) => {
     try {
       const cardsToDelete = get().cards.filter((c) => c.deckId === deckId);
-      for (const card of cardsToDelete) {
-        await db
+      for (const card of cardsToDelete)
+        await firestore()
           .doc(`flashcards/${language}/decks/${deckId}/cards/${card.id}`)
           .delete();
-      }
-      await db.doc(`flashcards/${language}/decks/${deckId}`).delete();
+      await firestore().doc(`flashcards/${language}/decks/${deckId}`).delete();
       set((state) => ({
         decks: state.decks.filter((d) => d.id !== deckId),
         cards: state.cards.filter((c) => c.deckId !== deckId),
@@ -216,32 +214,34 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       front,
       back,
       deckId,
-      createdAt: Date.now(),
-      nextReview: Date.now(),
+      createdAt: firestore.FieldValue.serverTimestamp(),
+      nextReview: firestore.FieldValue.serverTimestamp(),
       interval: 0,
       easeFactor: 2.5,
       repetitions: 0,
       difficulty: "good" as const,
       isCustom: true,
     };
-    const ref = await db
+    const ref = await firestore()
       .collection(`flashcards/${cardLanguage}/decks/${deckId}/cards`)
-      .add({
-        ...newCard,
-        createdAt: firestore.FieldValue.serverTimestamp(),
-        nextReview: firestore.FieldValue.serverTimestamp(),
-      });
+      .add(newCard);
     set((state) => ({
       cards: [
         ...state.cards,
-        { ...newCard, id: ref.id, language: cardLanguage } as Flashcard,
+        {
+          ...newCard,
+          id: ref.id,
+          language: cardLanguage,
+          createdAt: Date.now(),
+          nextReview: Date.now(),
+        },
       ],
     }));
   },
 
   updateCard: async (language, deckId, cardId, updatedData) => {
     try {
-      await db
+      await firestore()
         .doc(`flashcards/${language}/decks/${deckId}/cards/${cardId}`)
         .update(updatedData);
       set((state) => ({
@@ -256,7 +256,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
   deleteCard: async (language, deckId, cardId) => {
     try {
-      await db
+      await firestore()
         .doc(`flashcards/${language}/decks/${deckId}/cards/${cardId}`)
         .delete();
       set((state) => ({ cards: state.cards.filter((c) => c.id !== cardId) }));
@@ -267,10 +267,10 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
   fetchAchievements: async () => {
     try {
-      const user = authInstance.currentUser;
-      if (!user) throw new Error("No authenticated user");
+      const user = auth().currentUser;
+      if (!user) return;
 
-      await db
+      await firestore()
         .collection("users")
         .doc(user.uid)
         .set(
@@ -282,7 +282,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
           { merge: true }
         );
 
-      const statsRef = db
+      const statsRef = firestore()
         .collection("users")
         .doc(user.uid)
         .collection("stats")
@@ -346,10 +346,9 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     });
 
     try {
-      const user = authInstance.currentUser;
-      if (!user) throw new Error("No authenticated user");
-
-      const statsRef = db
+      const user = auth().currentUser;
+      if (!user) return;
+      const statsRef = firestore()
         .collection("users")
         .doc(user.uid)
         .collection("stats")
@@ -360,9 +359,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         totalCardsStudied: currentStats.totalCardsStudied,
         studyStreak: currentStats.studyStreak,
         lastStudyDate: currentStats.lastStudyDate
-          ? FirebaseFirestoreTypes.Timestamp.fromDate(
-              new Date(currentStats.lastStudyDate)
-            )
+          ? new Date(currentStats.lastStudyDate)
           : null,
         totalStudyTime: currentStats.totalStudyTime,
         achievements: currentStats.achievements,
@@ -418,10 +415,10 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
 export const resetUserProgress = async () => {
   try {
-    const user = authInstance.currentUser;
+    const user = auth().currentUser;
     if (!user) throw new Error("No authenticated user");
 
-    const statsRef = db
+    const statsRef = firestore()
       .collection("users")
       .doc(user.uid)
       .collection("stats")

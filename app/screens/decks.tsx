@@ -180,7 +180,7 @@ export default function DecksScreen() {
 
           {decks.length === 0 && (
             <View style={styles.emptyState}>
-              <BookAlert size={64} color={Colors.greenDark} />
+              <BookAlert size={64} color={Colors.tealDark} />
               <Text style={styles.emptyTitle}>No decks yet</Text>
               <Text style={styles.emptyDescription}>
                 Create your first deck to start learning
@@ -355,12 +355,12 @@ const styles = StyleSheet.create({
   emptyTitle: {
     fontSize: 28,
     fontWeight: "700",
-    color: Colors.greenDark,
+    color: Colors.tealDark,
     marginTop: 16,
   },
   emptyDescription: {
     fontSize: 14,
-    color: Colors.greenDark,
+    color: Colors.tealDark,
     textAlign: "center",
     marginTop: 8,
   },
