@@ -27,7 +27,18 @@
     "web": {
       "favicon": "./assets/images/pocketlingo-icon.png"
     },
-    "plugins": [],
+    "plugins": [
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "extraMavenRepos": [
+              "../../node_modules/@notifee/react-native/android/libs"
+            ]
+          }
+        }
+      ]
+    ],
     "experiments": {
       "typedRoutes": true
     }
