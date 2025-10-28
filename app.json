@@ -5,7 +5,7 @@
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/pocketlingo-icon.png",
-    "scheme": "myapp",
+    "scheme": "pocketlingo",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "splash": {
