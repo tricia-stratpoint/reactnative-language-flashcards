@@ -38,5 +38,9 @@
     <meta-data
         android:name="com.google.firebase.messaging.default_notification_color"
         android:resource="@color/white" />
+    <service
+      android:name="app.notifee.core.NotifeeForegroundService"
+      android:foregroundServiceType="mediaPlayback|location|connectedDevice|microphone"
+      android:exported="false" />
   </application>
 </manifest>
