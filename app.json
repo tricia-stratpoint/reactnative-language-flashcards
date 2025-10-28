@@ -15,14 +15,16 @@
     },
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "app.rork.pocketlingo"
+      "bundleIdentifier": "app.rork.pocketlingo",
+      "googleServicesFile": "./firebase/GoogleService-Info.plist"
     },
     "android": {
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/pocketlingo-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "app.rork.pocketlingo"
+      "package": "app.rork.pocketlingo",
+      "googleServicesFile": "./firebase/google-services.json"
     },
     "web": {
       "favicon": "./assets/images/pocketlingo-icon.png"
