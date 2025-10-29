@@ -19,7 +19,7 @@ target 'PocketLingo' do
   use_expo_modules!
 
   pod 'Firebase/CoreOnly'
-  pod 'FirebaseMessaging'
+  pod 'Firebase/Messaging'
   pod 'Firebase/Core'
   pod 'Firebase/Auth'
   pod 'Firebase/Firestore'

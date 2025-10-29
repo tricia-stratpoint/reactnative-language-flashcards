@@ -8,10 +8,26 @@ import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import AppNavigator from "./app/navigation/AppNavigator";
 import { Colors } from "./app/constants/colors";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
-import { initializeNotificationChannel } from "./app/utils/notifications";
+import {
+  registerDeviceForFCM,
+  getFcmToken,
+  setupForegroundListener,
+  initializeNotificationChannel,
+} from "./app/utils/notifications";
+import messaging from "@react-native-firebase/messaging";
+import notifee from "@notifee/react-native";
 
 const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
+
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  console.log("Background message:", remoteMessage);
+  await notifee.displayNotification({
+    title: remoteMessage.notification?.title || "New Message",
+    body: remoteMessage.notification?.body || "You have a new notification.",
+    android: { channelId: "default" },
+  });
+});
 
 export default function App() {
   useEffect(() => {
@@ -34,7 +50,17 @@ export default function App() {
   }, []);
 
   useEffect(() => {
-    initializeNotificationChannel();
+    const initNotifications = async () => {
+      try {
+        await initializeNotificationChannel(); // notifee channel
+        await registerDeviceForFCM(); // register device
+        await getFcmToken(); // get token
+        setupForegroundListener(); // foreground listener
+      } catch (err) {
+        console.log("Notification init error:", err);
+      }
+    };
+    initNotifications();
   }, []);
 
   return (

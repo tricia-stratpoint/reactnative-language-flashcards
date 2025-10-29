@@ -15,9 +15,8 @@ import auth from "@react-native-firebase/auth";
 import { resetUserProgress } from "@/hooks/flashcard-store";
 import { useNavigation } from "@react-navigation/native";
 import {
-  setupForegroundListener,
   showTestNotification,
-  handleEnableNotifications,
+  handleManageNotifications,
 } from "../utils/notifications";
 
 export default function SettingsScreen() {
@@ -44,10 +43,6 @@ export default function SettingsScreen() {
 
   const handleClearData = () => setShowClearModal(true);
   const showAbout = () => setShowAboutModal(true);
-
-  React.useEffect(() => {
-    setupForegroundListener();
-  }, []);
 
   const handleTestNotification = async () => {
     await showTestNotification();
@@ -128,7 +123,7 @@ export default function SettingsScreen() {
 
             <TouchableOpacity
               style={styles.settingItem}
-              onPress={handleEnableNotifications}
+              onPress={handleManageNotifications}
             >
               <View style={styles.settingLeft}>
                 <View
@@ -164,7 +159,7 @@ export default function SettingsScreen() {
                 <View>
                   <Text style={styles.settingTitle}>Test Notification</Text>
                   <Text style={styles.settingDescription}>
-                    Tap to send a test notification
+                    Tap to send a local notification
                   </Text>
                 </View>
               </View>

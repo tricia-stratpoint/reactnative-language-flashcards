@@ -16,9 +16,22 @@ export async function requestNotificationPermission() {
   }
 }
 
+// register for remote messages for fcm
+export async function registerDeviceForFCM() {
+  if (Platform.OS === "android") {
+    const enabled = await messaging().hasPermission();
+    if (!enabled) {
+      await messaging().requestPermission();
+    }
+    await messaging().registerDeviceForRemoteMessages();
+  } else {
+    console.log("iOS device: auto-registration handled by Firebase");
+  }
+}
+
 // get fcm token
 export async function getFcmToken() {
-  await messaging().registerDeviceForRemoteMessages();
+  await registerDeviceForFCM();
   const token = await messaging().getToken();
   console.log("FCM Token:", token);
   return token;
@@ -32,9 +45,7 @@ export function setupForegroundListener() {
     await notifee.displayNotification({
       title: remoteMessage.notification?.title || "New Message",
       body: remoteMessage.notification?.body || "You have a new notification.",
-      android: {
-        channelId: "default",
-      },
+      android: { channelId: "default" },
       ios: {
         sound: "default",
         foregroundPresentationOptions: {
@@ -47,8 +58,20 @@ export function setupForegroundListener() {
   });
 }
 
-// create test local notification
+messaging().setBackgroundMessageHandler(async (remoteMessage) => {
+  console.log("Message handled in background:", remoteMessage);
+  await notifee.displayNotification({
+    title: remoteMessage.notification?.title || "New Message",
+    body: remoteMessage.notification?.body || "You have a new notification.",
+    android: { channelId: "default" },
+    ios: {
+      sound: "default",
+      foregroundPresentationOptions: { alert: true, badge: true, sound: true },
+    },
+  });
+});
 
+// create test local notification
 export async function initializeNotificationChannel() {
   if (Platform.OS === "android") {
     await notifee.createChannel({
@@ -101,9 +124,12 @@ export async function showTestNotification() {
   });
 }
 
-export const handleEnableNotifications = async () => {
+export const handleManageNotifications = async () => {
   try {
     const settings = await notifee.getNotificationSettings();
+
+    const token = await getFcmToken();
+    console.log("FCM Token (Manage Notifications):", token);
 
     if (settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
       // if already granted, open system settings
@@ -117,7 +143,6 @@ export const handleEnableNotifications = async () => {
       const newSettings = await notifee.requestPermission();
       if (newSettings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
         console.log("Notifications permission granted.");
-        await messaging().getToken();
       } else {
         console.log("Notifications permission denied.");
       }

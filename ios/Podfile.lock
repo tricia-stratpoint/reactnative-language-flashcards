@@ -3615,7 +3615,7 @@ DEPENDENCIES:
   - Firebase/Core
   - Firebase/CoreOnly
   - Firebase/Firestore
-  - FirebaseMessaging
+  - Firebase/Messaging
   - fmt (from `../node_modules/react-native/third-party-podspecs/fmt.podspec`)
   - glog (from `../node_modules/react-native/third-party-podspecs/glog.podspec`)
   - hermes-engine (from `../node_modules/react-native/sdks/hermes-engine/hermes-engine.podspec`)
@@ -4076,6 +4076,6 @@ SPEC CHECKSUMS:
   TextToSpeech: 2b930ec3756afde499061f4f01ea895e1f75dccb
   Yoga: bfcce202dba74007f8974ee9c5f903a9a286c445
 
-PODFILE CHECKSUM: e1bf981dd598ad4d45d023c3510d5db19066b24d
+PODFILE CHECKSUM: 299d9762531ebaaf76ffa9095f0d6d402672c6ff
 
 COCOAPODS: 1.16.2
