@@ -3,6 +3,7 @@ import notifee, {
   AuthorizationStatus,
   AndroidImportance,
 } from "@notifee/react-native";
+import { Platform } from "react-native";
 
 // ask for permission
 export async function requestNotificationPermission() {
@@ -33,6 +34,14 @@ export function setupForegroundListener() {
       android: {
         channelId: "default",
       },
+      ios: {
+        sound: "default",
+        foregroundPresentationOptions: {
+          alert: true,
+          badge: true,
+          sound: true,
+        },
+      },
     });
   });
 }
@@ -40,22 +49,29 @@ export function setupForegroundListener() {
 // create test local notification
 
 export async function initializeNotificationChannel() {
-  await notifee.createChannel({
-    id: "default",
-    name: "Default Channel",
-    importance: AndroidImportance.HIGH,
-    sound: "default",
-  });
+  if (Platform.OS === "android") {
+    await notifee.createChannel({
+      id: "default",
+      name: "Default Channel",
+      importance: AndroidImportance.HIGH,
+      sound: "default",
+    });
+  }
 }
 
 export async function showTestNotification() {
-  await notifee.requestPermission();
-  const channelId = await notifee.createChannel({
-    id: "default",
-    name: "Default Channel",
-    importance: AndroidImportance.HIGH,
-    vibration: true,
-  });
+  const settings = await notifee.requestPermission();
+  console.log("iOS permission result:", settings);
+
+  let channelId: string | undefined = undefined;
+  if (Platform.OS === "android") {
+    channelId = await notifee.createChannel({
+      id: "default",
+      name: "Default Channel",
+      importance: AndroidImportance.HIGH,
+      vibration: true,
+    });
+  }
 
   await notifee.cancelDisplayedNotifications();
   await new Promise((res) => setTimeout(res, 200));
@@ -72,6 +88,14 @@ export async function showTestNotification() {
       importance: AndroidImportance.HIGH,
       vibrationPattern: [300, 500],
       groupId: Date.now().toString(),
+    },
+    ios: {
+      sound: "default",
+      foregroundPresentationOptions: {
+        alert: true,
+        badge: true,
+        sound: true,
+      },
     },
   });
 }
