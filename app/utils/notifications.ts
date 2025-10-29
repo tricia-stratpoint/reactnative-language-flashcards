@@ -18,6 +18,7 @@ export async function requestNotificationPermission() {
 
 // get fcm token
 export async function getFcmToken() {
+  await messaging().registerDeviceForRemoteMessages();
   const token = await messaging().getToken();
   console.log("FCM Token:", token);
   return token;

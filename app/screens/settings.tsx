@@ -15,8 +15,6 @@ import auth from "@react-native-firebase/auth";
 import { resetUserProgress } from "@/hooks/flashcard-store";
 import { useNavigation } from "@react-navigation/native";
 import {
-  requestNotificationPermission,
-  getFcmToken,
   setupForegroundListener,
   showTestNotification,
   handleEnableNotifications,
