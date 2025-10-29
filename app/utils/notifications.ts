@@ -3,7 +3,7 @@ import notifee, {
   AuthorizationStatus,
   AndroidImportance,
 } from "@notifee/react-native";
-import { Platform } from "react-native";
+import { Platform, Linking } from "react-native";
 
 // ask for permission
 export async function requestNotificationPermission() {
@@ -99,3 +99,29 @@ export async function showTestNotification() {
     },
   });
 }
+
+export const handleEnableNotifications = async () => {
+  try {
+    const settings = await notifee.getNotificationSettings();
+
+    if (settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
+      // if already granted, open system settings
+      if (Platform.OS === "ios") {
+        await Linking.openURL("app-settings:");
+      } else {
+        await Linking.openSettings();
+      }
+    } else {
+      // if not granted, request permission
+      const newSettings = await notifee.requestPermission();
+      if (newSettings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
+        console.log("Notifications permission granted.");
+        await messaging().getToken();
+      } else {
+        console.log("Notifications permission denied.");
+      }
+    }
+  } catch (error) {
+    console.error("Error handling notifications:", error);
+  }
+};

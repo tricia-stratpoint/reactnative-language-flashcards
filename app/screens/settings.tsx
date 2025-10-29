@@ -19,6 +19,7 @@ import {
   getFcmToken,
   setupForegroundListener,
   showTestNotification,
+  handleEnableNotifications,
 } from "../utils/notifications";
 
 export default function SettingsScreen() {
@@ -49,11 +50,6 @@ export default function SettingsScreen() {
   React.useEffect(() => {
     setupForegroundListener();
   }, []);
-
-  const handleEnableNotifications = async () => {
-    await requestNotificationPermission();
-    await getFcmToken();
-  };
 
   const handleTestNotification = async () => {
     await showTestNotification();
@@ -146,7 +142,7 @@ export default function SettingsScreen() {
                   <Bell size={20} color={Colors.white} />
                 </View>
                 <View>
-                  <Text style={styles.settingTitle}>Notifications</Text>
+                  <Text style={styles.settingTitle}>Manage Notifications</Text>
                   <Text style={styles.settingDescription}>
                     Set your notification preferences
                   </Text>
