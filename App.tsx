@@ -8,6 +8,7 @@ import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
 import AppNavigator from "./app/navigation/AppNavigator";
 import { Colors } from "./app/constants/colors";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
+import { initializeNotificationChannel } from "./app/utils/notifications";
 
 const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
@@ -30,6 +31,10 @@ export default function App() {
     );
 
     return unsubscribe;
+  }, []);
+
+  useEffect(() => {
+    initializeNotificationChannel();
   }, []);
 
   return (
