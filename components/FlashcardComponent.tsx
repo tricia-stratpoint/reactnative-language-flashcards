@@ -128,11 +128,12 @@ export default function FlashcardComponent({
   useEffect(() => {
     const setupTts = async () => {
       try {
-        await Tts.setDefaultLanguage("en-US");
+        await Tts.getInitStatus();
         await Tts.setDefaultPitch(1.0);
         await Tts.setDefaultRate(0.5, true);
+        await Tts.setDefaultLanguage("en-US");
       } catch (err) {
-        console.warn("TTS setup error:", err);
+        console.warn("TTS initialization error:", err);
       }
     };
 
