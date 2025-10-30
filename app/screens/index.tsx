@@ -17,9 +17,7 @@ import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 
-export default function StudyScreen({
-  language = "spanish" as Deck["language"],
-}) {
+export default function StudyScreen() {
   const insets = useSafeAreaInsets();
   const [selectedDeck, setSelectedDeck] = useState<string | null>(null);
   const [studyCards, setStudyCards] = useState<Flashcard[]>([]);
@@ -128,7 +126,7 @@ export default function StudyScreen({
       setCurrentCardIndex((prev) => prev + 1);
     } else {
       // Session complete - show completion message
-      setSelectedDeck(null);
+      setCurrentCardIndex(studyCards.length);
     }
   };
 
@@ -147,11 +145,45 @@ export default function StudyScreen({
     );
   }
 
-  if (
-    selectedDeck &&
-    studyCards.length > 0 &&
-    currentCardIndex < studyCards.length
-  ) {
+  if (selectedDeck && studyCards.length > 0) {
+    // End-of-session screen
+    if (currentCardIndex >= studyCards.length) {
+      return (
+        <View style={[styles.container, { paddingTop: insets.top }]}>
+          <LinearGradient
+            colors={[Colors.blue, Colors.greenMint]}
+            style={styles.gradient}
+          >
+            <View style={styles.endContainer}>
+              <Image
+                source={require("../../assets/images/pocketlingo-end-session.png")}
+                style={styles.endSessionImage}
+                resizeMode="contain"
+              />
+              <Text style={styles.endTitle}>Session Complete </Text>
+              <Text style={styles.endText}>
+                You studied {sessionStats.studied}{" "}
+                {sessionStats.studied === 1 ? "card" : "cards"} with{" "}
+                {sessionStats.studied > 0
+                  ? Math.round(
+                      (sessionStats.correct / sessionStats.studied) * 100
+                    )
+                  : 0}
+                % accuracy
+              </Text>
+
+              <TouchableOpacity
+                style={styles.endButton}
+                onPress={() => setSelectedDeck(null)}
+              >
+                <Text style={styles.endButtonText}>Back to Decks</Text>
+              </TouchableOpacity>
+            </View>
+          </LinearGradient>
+        </View>
+      );
+    }
+
     const currentCard = studyCards[currentCardIndex];
     const progress = ((currentCardIndex + 1) / studyCards.length) * 100;
 
@@ -447,5 +479,38 @@ const styles = StyleSheet.create({
     color: Colors.blue,
     textAlign: "center",
     paddingHorizontal: 20,
+  },
+  endSessionImage: {
+    width: 300,
+    height: 300,
+  },
+  endContainer: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  endTitle: {
+    fontSize: 28,
+    fontWeight: "700",
+    color: Colors.white,
+    marginBottom: 12,
+  },
+  endText: {
+    fontSize: 16,
+    color: Colors.white,
+    textAlign: "center",
+    marginBottom: 30,
+  },
+  endButton: {
+    marginTop: 30,
+    backgroundColor: Colors.white,
+    paddingHorizontal: 24,
+    paddingVertical: 12,
+    borderRadius: 20,
+  },
+  endButtonText: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.blue,
   },
 });
