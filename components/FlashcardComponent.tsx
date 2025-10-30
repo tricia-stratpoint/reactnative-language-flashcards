@@ -5,6 +5,8 @@ import {
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
+  Animated,
+  PanResponder,
   Platform,
 } from "react-native";
 import CardFlip from "react-native-card-flip";
@@ -42,6 +44,86 @@ export default function FlashcardComponent({
   const CARD_HEIGHT = screenHeight * 0.6;
 
   const cardFlipRef = useRef<CardFlipRef>(null);
+
+  const [panAnimation] = React.useState(new Animated.ValueXY());
+  const [scaleAnimation] = React.useState(new Animated.Value(1));
+
+  const overlayOpacity = panAnimation.x.interpolate({
+    inputRange: [-screenWidth / 4, 0, screenWidth / 4],
+    outputRange: [0.8, 0, 0.8],
+    extrapolate: "clamp",
+  });
+
+  const overlayColor = panAnimation.x.interpolate({
+    inputRange: [
+      -screenWidth,
+      -screenWidth / 3,
+      0,
+      screenWidth / 3,
+      screenWidth,
+    ],
+    outputRange: ["#ef4444", "#f97316", "transparent", "#22c55e", "#3b82f6"],
+    extrapolate: "clamp",
+  });
+
+  const cardTransform = {
+    transform: [
+      { translateX: panAnimation.x },
+      { translateY: panAnimation.y },
+      { scale: scaleAnimation },
+      {
+        rotate: panAnimation.x.interpolate({
+          inputRange: [-screenWidth / 2, 0, screenWidth / 2],
+          outputRange: ["-15deg", "0deg", "15deg"],
+          extrapolate: "clamp",
+        }),
+      },
+    ],
+  };
+
+  const panResponder = PanResponder.create({
+    onStartShouldSetPanResponder: () => true,
+    onMoveShouldSetPanResponder: () => true,
+    onPanResponderGrant: () => {
+      Animated.spring(scaleAnimation, {
+        toValue: 0.95,
+        useNativeDriver: true,
+      }).start();
+    },
+    onPanResponderMove: (_, gestureState) => {
+      panAnimation.setValue({ x: gestureState.dx, y: gestureState.dy });
+    },
+    onPanResponderRelease: (_, gestureState) => {
+      const { dx, vx, dy } = gestureState;
+
+      Animated.spring(scaleAnimation, {
+        toValue: 1,
+        useNativeDriver: true,
+      }).start();
+
+      const swipeThreshold = 100;
+      const velocityThreshold = 500;
+
+      if (Math.abs(dx) > swipeThreshold || Math.abs(vx) > velocityThreshold) {
+        if (dx > 0) {
+          onSwipe(dx > screenWidth / 3 ? "easy" : "good");
+        } else {
+          onSwipe(Math.abs(dx) > screenWidth / 3 ? "again" : "hard");
+        }
+
+        Animated.timing(panAnimation, {
+          toValue: { x: dx > 0 ? screenWidth : -screenWidth, y: dy },
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      } else {
+        Animated.spring(panAnimation, {
+          toValue: { x: 0, y: 0 },
+          useNativeDriver: true,
+        }).start();
+      }
+    },
+  });
 
   useEffect(() => {
     const setupTts = async () => {
@@ -87,59 +169,59 @@ export default function FlashcardComponent({
 
   return (
     <View style={styles.container}>
-      <CardFlipTyped
-        style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
-        ref={cardFlipRef}
-        flipDuration={600}
-      >
-        {/* FRONT */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }]} // <-- force full size
-          onPress={handleFlip}
-        >
-          <LinearGradient
-            colors={["#ffffff", "#f8fafc"]}
-            style={[
-              styles.cardGradient,
-              { width: CARD_WIDTH, height: CARD_HEIGHT },
-            ]}
+      <Animated.View style={cardTransform} {...panResponder.panHandlers}>
+        <View style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
+          <CardFlipTyped
+            style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
+            ref={cardFlipRef}
+            flipDuration={600}
           >
-            <Text style={styles.cardText}>{card.front}</Text>
-            <Text style={styles.tapHint}>Tap to reveal</Text>
-          </LinearGradient>
-        </TouchableOpacity>
+            {/* front */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }]}
+              onPress={handleFlip}
+            >
+              <LinearGradient
+                colors={["#fff", "#f8fafc"]}
+                style={styles.cardGradient}
+              >
+                <Text style={styles.cardText}>{card.front}</Text>
+                <Text style={styles.tapHint}>Tap to reveal</Text>
+              </LinearGradient>
+            </TouchableOpacity>
 
-        {/* BACK */}
-        <TouchableOpacity
-          activeOpacity={0.9}
-          style={[
-            styles.card,
-            {
-              backgroundColor: "#ffffff",
-              width: CARD_WIDTH,
-              height: CARD_HEIGHT,
-            },
-          ]}
-          onPress={handleFlip}
-        >
-          <LinearGradient
-            colors={["#ffffff", "#f8fafc"]}
+            {/* back */}
+            <TouchableOpacity
+              activeOpacity={0.9}
+              style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }]}
+              onPress={handleFlip}
+            >
+              <LinearGradient
+                colors={["#fff", "#f8fafc"]}
+                style={styles.cardGradient}
+              >
+                <View style={styles.audioButtonContainer}>
+                  <TouchableOpacity onPress={speakText}>
+                    <Volume2 size={24} color={Colors.gray} />
+                  </TouchableOpacity>
+                </View>
+                <Text style={styles.cardText}>{card.back}</Text>
+                <Text style={styles.swipeHint}>Swipe to rate difficulty</Text>
+              </LinearGradient>
+            </TouchableOpacity>
+          </CardFlipTyped>
+
+          {/* overlay */}
+          <Animated.View
+            pointerEvents="none"
             style={[
-              styles.cardGradient,
-              { width: CARD_WIDTH, height: CARD_HEIGHT },
+              styles.overlay,
+              { opacity: overlayOpacity, backgroundColor: overlayColor },
             ]}
-          >
-            <View style={styles.audioButtonContainer}>
-              <TouchableOpacity onPress={speakText}>
-                <Volume2 size={24} color={Colors.gray} />
-              </TouchableOpacity>
-            </View>
-            <Text style={styles.cardText}>{card.back}</Text>
-            <Text style={styles.swipeHint}>Swipe to rate difficulty</Text>
-          </LinearGradient>
-        </TouchableOpacity>
-      </CardFlipTyped>
+          />
+        </View>
+      </Animated.View>
 
       <View style={[styles.indicators, { width: CARD_WIDTH }]}>
         {["again", "hard", "good", "easy"].map((level) => (
@@ -205,6 +287,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: Colors.gray,
     fontWeight: "500",
+  },
+  overlay: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    borderRadius: 20,
   },
   indicators: {
     flexDirection: "row",
