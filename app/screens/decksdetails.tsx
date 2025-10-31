@@ -144,7 +144,10 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Deck Details</Text>
 
-        <TouchableOpacity onPress={() => setShowDownloadModal(true)}>
+        <TouchableOpacity
+          disabled={isDownloaded}
+          onPress={() => setShowDownloadModal(true)}
+        >
           <Download color={isDownloaded ? "#dadada" : Colors.black} size={22} />
         </TouchableOpacity>
       </View>
