@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useMemo } from "react";
+import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
   Text,
@@ -8,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Play, BarChart3 } from "lucide-react-native";
+import { Play, BarChart3, Check } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Flashcard, Deck } from "@/types/flashcard";
 import FlashcardComponent from "@/components/FlashcardComponent";
@@ -16,6 +17,7 @@ import { Colors } from "../constants/colors";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
@@ -26,6 +28,7 @@ export default function StudyScreen() {
   const [sessionStats, setSessionStats] = useState({ studied: 0, correct: 0 });
   const [username, setUsername] = useState("");
   const isLoading = useFlashcardStore((state) => state.isLoading);
+  const [downloadedDecks, setDownloadedDecks] = useState<string[]>([]);
 
   const {
     cards,
@@ -96,6 +99,22 @@ export default function StudyScreen() {
       setSessionStats({ studied: 0, correct: 0 });
     }
   }, [selectedDeck, decks]);
+
+  useFocusEffect(
+    React.useCallback(() => {
+      const loadDownloads = async () => {
+        const stored = await AsyncStorage.getItem("downloaded_decks");
+        if (stored) {
+          const data = (JSON.parse(stored) as any[]).map((d: any) => d.deck.id);
+          setDownloadedDecks(data);
+        } else {
+          setDownloadedDecks([]);
+        }
+      };
+
+      loadDownloads();
+    }, [])
+  );
 
   const handleCardSwipe = (difficulty: Flashcard["difficulty"]) => {
     const currentCard = studyCards[currentCardIndex];
@@ -291,9 +310,18 @@ export default function StudyScreen() {
                     <View style={styles.statItem}>
                       <BarChart3 size={16} color={Colors.white} />
                       <Text style={styles.statText}>
-                        {deckCardCounts[deck.id] || 0} cards to study
+                        {deckCardCounts[deck.id] || 0}{" "}
+                        {deckCardCounts[deck.id] === 1 ? "card" : "cards"} to
+                        study
                       </Text>
                     </View>
+
+                    {downloadedDecks.includes(deck.id) && (
+                      <View style={styles.downloadedTag}>
+                        <Check size={16} color={Colors.white} />
+                        <Text style={styles.downloadedText}>Downloaded</Text>
+                      </View>
+                    )}
                   </View>
                 </TouchableOpacity>
               ))
@@ -512,5 +540,20 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "600",
     color: Colors.blue,
+  },
+  downloadedTag: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "rgba(255, 255, 255, 0.2)",
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 10,
+    marginLeft: 8,
+    gap: 4,
+  },
+  downloadedText: {
+    color: Colors.white,
+    fontSize: 14,
+    fontWeight: "500",
   },
 });
