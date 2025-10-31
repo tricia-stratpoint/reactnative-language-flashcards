@@ -10,11 +10,12 @@ import {
   TextInput,
 } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
-import { ArrowLeft, Pencil, Trash2 } from "lucide-react-native";
+import { ArrowLeft, Pencil, Trash2, Download } from "lucide-react-native";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
 import { Flashcard } from "@/types/flashcard";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import { saveDeckOffline, isDeckOffline } from "../utils/offlineStorage";
 
 const DECK_COLORS = [
   Colors.red,
@@ -57,6 +58,9 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
   const [cardFront, setCardFront] = useState("");
   const [cardBack, setCardBack] = useState("");
 
+  const [showDownloadModal, setShowDownloadModal] = useState(false);
+  const [isDownloaded, setIsDownloaded] = useState(false);
+
   useEffect(() => {
     setDeckCards(cards.filter((c) => c.deckId === deckId));
   }, [cards, deckId]);
@@ -67,6 +71,14 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
       setEditDescription(deck.description || "");
       setSelectedColor(deck.color || null);
     }
+  }, [deck]);
+
+  useEffect(() => {
+    if (!deck) return;
+    (async () => {
+      const downloaded = await isDeckOffline(deck.id);
+      setIsDownloaded(downloaded);
+    })();
   }, [deck]);
 
   if (!deck) return null;
@@ -128,9 +140,13 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
-          <ArrowLeft color="#111" size={24} />
+          <ArrowLeft color={Colors.black} size={24} />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Deck Details</Text>
+
+        <TouchableOpacity onPress={() => setShowDownloadModal(true)}>
+          <Download color={isDownloaded ? "#dadada" : Colors.black} size={22} />
+        </TouchableOpacity>
       </View>
 
       <View style={styles.container}>
@@ -416,6 +432,38 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           </View>
         </Modal>
+
+        {/* Confirm Download Modal */}
+        <Modal visible={showDownloadModal} transparent animationType="fade">
+          <View style={styles.modal}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Download Deck?</Text>
+              <Text style={styles.modalDescription}>
+                Do you want to download this deck for offline study mode?
+              </Text>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => setShowDownloadModal(false)}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.createButton]}
+                  onPress={async () => {
+                    await saveDeckOffline(deck, deckCards);
+                    setShowDownloadModal(false);
+                    setIsDownloaded(true);
+                  }}
+                >
+                  <Text style={styles.createButtonText}>Download</Text>
+                </TouchableOpacity>
+              </View>
+            </View>
+          </View>
+        </Modal>
       </View>
     </SafeAreaView>
   );
@@ -429,7 +477,7 @@ const styles = StyleSheet.create({
   header: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    justifyContent: "space-between",
     paddingHorizontal: 16,
     paddingVertical: 12,
   },

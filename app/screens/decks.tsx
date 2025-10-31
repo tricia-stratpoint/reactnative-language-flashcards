@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   Modal,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Plus, BookOpen, BookAlert } from "lucide-react-native";
+import { Plus, BookOpen, BookAlert, Check } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
@@ -17,6 +17,7 @@ import { Colors } from "../constants/colors";
 import { Flashcard, Deck } from "@/types/flashcard";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 const DECK_COLORS = [
   Colors.red,
@@ -41,6 +42,19 @@ export default function DecksScreen() {
   const [deckName, setDeckName] = useState("");
   const [deckDescription, setDeckDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
+  const [offlineDecks, setOfflineDecks] = useState<string[]>([]);
+
+  useEffect(() => {
+    const fetchOffline = async () => {
+      const stored = await AsyncStorage.getItem("downloaded_decks");
+      if (stored) {
+        const data = JSON.parse(stored).map((d: any) => d.deck.id);
+        setOfflineDecks(data);
+      }
+    };
+    const unsubscribe = navigation.addListener("focus", fetchOffline);
+    return unsubscribe;
+  }, [navigation]);
 
   const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
@@ -173,6 +187,25 @@ export default function DecksScreen() {
                   >
                     <Text style={styles.actionButtonText}>Manage Deck</Text>
                   </TouchableOpacity>
+
+                  {offlineDecks.includes(deck.id) && (
+                    <View
+                      style={[
+                        styles.downloadedContainer,
+                        { borderColor: getDeckColor(deck) },
+                      ]}
+                    >
+                      <Check size={18} color={getDeckColor(deck)} />
+                      <Text
+                        style={[
+                          styles.downloadedText,
+                          { color: getDeckColor(deck) },
+                        ]}
+                      >
+                        Downloaded
+                      </Text>
+                    </View>
+                  )}
                 </View>
               </View>
             );
@@ -344,6 +377,22 @@ const styles = StyleSheet.create({
   },
   actionButtonText: {
     color: Colors.white,
+    fontSize: 14,
+    fontWeight: "500",
+  },
+  downloadedContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 8,
+    borderRadius: 20,
+    gap: 4,
+    backgroundColor: Colors.white,
+    borderWidth: 1,
+    borderColor: Colors.gray,
+  },
+  downloadedText: {
+    color: Colors.gray,
     fontSize: 14,
     fontWeight: "500",
   },
