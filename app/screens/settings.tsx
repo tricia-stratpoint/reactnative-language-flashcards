@@ -29,6 +29,8 @@ export default function SettingsScreen() {
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
   const [downloaded, setDownloaded] = useState<any[]>([]);
   const [showDownloadsModal, setShowDownloadsModal] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
+  const [deckToDelete, setDeckToDelete] = useState<any | null>(null);
 
   const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
@@ -387,9 +389,14 @@ export default function SettingsScreen() {
                       </View>
 
                       <TouchableOpacity
-                        onPress={async () => {
-                          await deleteOfflineDeck(item.deck.id);
-                          await loadDecks();
+                        onPress={() => {
+                          console.log(
+                            "Opening delete modal for:",
+                            item.deck.name
+                          );
+                          setShowDownloadsModal(false);
+                          setDeckToDelete(item.deck);
+                          setShowDeleteModal(true);
                         }}
                       >
                         <Trash2 size={20} color={Colors.red} />
@@ -409,6 +416,50 @@ export default function SettingsScreen() {
               >
                 <Text style={styles.primaryButtonText}>Close</Text>
               </TouchableOpacity>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Delete Download Confirmation Modal */}
+        <Modal visible={showDeleteModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={styles.modalContent}>
+              <Text style={styles.modalTitle}>Delete Download</Text>
+              <Text style={styles.modalText}>
+                Are you sure you want to delete{" "}
+                <Text style={{ fontWeight: "600", color: "#1f2937" }}>
+                  {deckToDelete?.name}
+                </Text>
+                ? This deck will no longer be available offline.
+              </Text>
+
+              <View style={styles.modalActions}>
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.cancelButton]}
+                  onPress={() => {
+                    setShowDeleteModal(false);
+                    setDeckToDelete(null);
+                    setShowDownloadsModal(true); // reopen downloads modal after cancel
+                  }}
+                >
+                  <Text style={styles.cancelButtonText}>Cancel</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.modalButton, styles.destructiveButton]}
+                  onPress={async () => {
+                    if (deckToDelete) {
+                      await deleteOfflineDeck(deckToDelete.id);
+                      await loadDecks();
+                    }
+                    setShowDeleteModal(false);
+                    setDeckToDelete(null);
+                    setShowDownloadsModal(true); // reopen downloads modal after deleting
+                  }}
+                >
+                  <Text style={styles.destructiveButtonText}>Delete</Text>
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Modal>
