@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useState, useCallback } from "react";
 import {
   View,
   Text,
@@ -6,6 +6,7 @@ import {
   ScrollView,
   TouchableOpacity,
   Modal,
+  FlatList,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Trash2, Download, Bell, Info, LogOut } from "lucide-react-native";
@@ -18,6 +19,7 @@ import {
   showTestNotification,
   handleManageNotifications,
 } from "../utils/notifications";
+import { getOfflineDecks, deleteOfflineDeck } from "../utils/offlineStorage";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -25,6 +27,8 @@ export default function SettingsScreen() {
   const [showClearModal, setShowClearModal] = React.useState(false);
   const [showAboutModal, setShowAboutModal] = React.useState(false);
   const [showLogoutModal, setShowLogoutModal] = React.useState(false);
+  const [downloaded, setDownloaded] = useState<any[]>([]);
+  const [showDownloadsModal, setShowDownloadsModal] = useState(false);
 
   const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
@@ -47,6 +51,21 @@ export default function SettingsScreen() {
   const handleTestNotification = async () => {
     await showTestNotification();
   };
+
+  const loadDecks = useCallback(async () => {
+    const decks = await getOfflineDecks();
+    setDownloaded(decks);
+  }, []);
+
+  useEffect(() => {
+    loadDecks();
+  }, [loadDecks]);
+
+  useEffect(() => {
+    if (showDownloadsModal) {
+      loadDecks();
+    }
+  }, [showDownloadsModal, loadDecks]);
 
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
@@ -82,7 +101,10 @@ export default function SettingsScreen() {
           <View style={styles.section}>
             <Text style={styles.sectionTitle}>Data Management</Text>
 
-            <TouchableOpacity style={styles.settingItem}>
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => setShowDownloadsModal(true)}
+            >
               <View style={styles.settingLeft}>
                 <View
                   style={[styles.settingIcon, { backgroundColor: Colors.pink }]}
@@ -314,6 +336,79 @@ export default function SettingsScreen() {
                   <Text style={styles.destructiveButtonText}>Logout</Text>
                 </TouchableOpacity>
               </View>
+            </View>
+          </View>
+        </Modal>
+
+        {/* Downloaded Decks Modal */}
+        <Modal visible={showDownloadsModal} transparent animationType="fade">
+          <View style={styles.modalOverlay}>
+            <View style={[styles.modalContent, { maxHeight: "80%" }]}>
+              <Text style={styles.modalTitle}>Downloaded Decks</Text>
+
+              {downloaded.length === 0 ? (
+                <Text
+                  style={{
+                    textAlign: "center",
+                    color: Colors.gray,
+                    marginVertical: 20,
+                  }}
+                >
+                  You have no downloaded decks.
+                </Text>
+              ) : (
+                <FlatList
+                  data={downloaded}
+                  keyExtractor={(item) => item.deck.id}
+                  renderItem={({ item }) => (
+                    <View
+                      style={{
+                        flexDirection: "row",
+                        justifyContent: "space-between",
+                        alignItems: "center",
+                        paddingVertical: 10,
+                        borderBottomWidth: 1,
+                        borderBottomColor: "#e5e7eb",
+                      }}
+                    >
+                      <View style={{ flex: 1, marginRight: 10 }}>
+                        <Text
+                          style={{
+                            fontSize: 16,
+                            fontWeight: "600",
+                            color: "#1f2937",
+                          }}
+                        >
+                          {item.deck.name}
+                        </Text>
+                        <Text style={{ color: Colors.gray, fontSize: 14 }}>
+                          {item.deck.description || "No description"}
+                        </Text>
+                      </View>
+
+                      <TouchableOpacity
+                        onPress={async () => {
+                          await deleteOfflineDeck(item.deck.id);
+                          await loadDecks();
+                        }}
+                      >
+                        <Trash2 size={20} color={Colors.red} />
+                      </TouchableOpacity>
+                    </View>
+                  )}
+                />
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.modalButton,
+                  styles.primaryButton,
+                  { marginTop: 16 },
+                ]}
+                onPress={() => setShowDownloadsModal(false)}
+              >
+                <Text style={styles.primaryButtonText}>Close</Text>
+              </TouchableOpacity>
             </View>
           </View>
         </Modal>
