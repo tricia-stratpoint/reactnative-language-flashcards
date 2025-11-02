@@ -1,5 +1,11 @@
 import React from "react";
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  ActivityIndicator,
+} from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Trophy, Target, Calendar, Star } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -16,9 +22,9 @@ export default function AchievementsScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <LinearGradient
           colors={[Colors.blue, Colors.greenMint]}
-          style={styles.gradient}
+          style={[styles.gradient, styles.loadingGradient]}
         >
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size={70} color={Colors.white} />
         </LinearGradient>
       </View>
     );
@@ -337,10 +343,8 @@ const styles = StyleSheet.create({
     color: Colors.white,
     lineHeight: 20,
   },
-  loadingText: {
-    fontSize: 18,
-    color: Colors.white,
-    textAlign: "center",
-    marginTop: 100,
+  loadingGradient: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

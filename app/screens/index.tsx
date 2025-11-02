@@ -7,6 +7,7 @@ import {
   TouchableOpacity,
   Image,
   ScrollView,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Play, BarChart3, Check, Info } from "lucide-react-native";
@@ -189,9 +190,9 @@ export default function StudyScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <LinearGradient
           colors={[Colors.blue, Colors.greenMint]}
-          style={styles.gradient}
+          style={[styles.gradient, styles.loadingGradient]}
         >
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size={70} color={Colors.white} />
         </LinearGradient>
       </View>
     );
@@ -496,12 +497,6 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     fontWeight: "500",
   },
-  loadingText: {
-    fontSize: 18,
-    color: Colors.white,
-    textAlign: "center",
-    marginTop: 100,
-  },
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -650,5 +645,9 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "transparent",
     zIndex: 1,
+  },
+  loadingGradient: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

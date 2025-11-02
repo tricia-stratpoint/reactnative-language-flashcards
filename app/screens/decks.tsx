@@ -7,6 +7,7 @@ import {
   ScrollView,
   TextInput,
   Modal,
+  ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Plus, BookOpen, BookAlert, Check } from "lucide-react-native";
@@ -108,9 +109,9 @@ export default function DecksScreen() {
       <View style={[styles.container, { paddingTop: insets.top }]}>
         <LinearGradient
           colors={[Colors.blue, Colors.greenMint]}
-          style={styles.gradient}
+          style={[styles.gradient, styles.loadingGradient]}
         >
-          <Text style={styles.loadingText}>Loading...</Text>
+          <ActivityIndicator size={70} color={Colors.white} />
         </LinearGradient>
       </View>
     );
@@ -413,12 +414,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginTop: 8,
   },
-  loadingText: {
-    fontSize: 18,
-    color: Colors.white,
-    textAlign: "center",
-    marginTop: 100,
-  },
   modal: {
     position: "absolute",
     top: 0,
@@ -503,5 +498,9 @@ const styles = StyleSheet.create({
     color: Colors.white,
     fontSize: 16,
     fontWeight: "500",
+  },
+  loadingGradient: {
+    justifyContent: "center",
+    alignItems: "center",
   },
 });
