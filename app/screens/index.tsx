@@ -9,7 +9,7 @@ import {
   ScrollView,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Play, BarChart3, Check } from "lucide-react-native";
+import { Play, BarChart3, Check, Info } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Flashcard, Deck } from "@/types/flashcard";
 import FlashcardComponent from "@/components/FlashcardComponent";
@@ -290,6 +290,20 @@ export default function StudyScreen() {
           <Text style={styles.subtitle}>
             Choose a deck to begin your learning session
           </Text>
+
+          {!isConnected &&
+            decks.some((deck) => !downloadedDecks.includes(deck.id)) && (
+              <View style={styles.offlineNoticeContainer}>
+                <Info
+                  size={16}
+                  color={Colors.blue}
+                  style={{ marginRight: 6 }}
+                />
+                <Text style={styles.offlineNotice}>
+                  Some decks may be unavailable while offline.
+                </Text>
+              </View>
+            )}
 
           <View style={styles.decksContainer}>
             {decks.length === 0 ? (
@@ -580,6 +594,20 @@ const styles = StyleSheet.create({
   downloadedText: {
     color: Colors.white,
     fontSize: 14,
+    fontWeight: "500",
+  },
+  offlineNoticeContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    marginTop: -25,
+    marginBottom: 35,
+  },
+  offlineNotice: {
+    fontSize: 13,
+    color: Colors.blue,
+    textAlign: "center",
+    fontStyle: "italic",
     fontWeight: "500",
   },
 });
