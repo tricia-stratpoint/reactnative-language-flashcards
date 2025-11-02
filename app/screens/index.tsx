@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useRef } from "react";
 import { useFocusEffect } from "@react-navigation/native";
 import {
   View,
@@ -31,6 +31,8 @@ export default function StudyScreen() {
   const isLoading = useFlashcardStore((state) => state.isLoading);
   const [downloadedDecks, setDownloadedDecks] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(true);
+  const [showConfetti, setShowConfetti] = useState(false);
+  const hasPlayedConfetti = useRef(false);
 
   const {
     cards,
@@ -102,6 +104,19 @@ export default function StudyScreen() {
     }
   }, [selectedDeck, decks]);
 
+  useEffect(() => {
+    if (
+      currentCardIndex >= studyCards.length &&
+      studyCards.length > 0 &&
+      !hasPlayedConfetti.current
+    ) {
+      hasPlayedConfetti.current = true;
+      setShowConfetti(true);
+      const timer = setTimeout(() => setShowConfetti(false), 1900);
+      return () => clearTimeout(timer);
+    }
+  }, [currentCardIndex, studyCards.length]);
+
   useFocusEffect(
     React.useCallback(() => {
       const loadDownloads = async () => {
@@ -165,6 +180,7 @@ export default function StudyScreen() {
       console.log("Deck not available offline:", deckId);
       return;
     }
+    hasPlayedConfetti.current = false;
     setSelectedDeck(deckId);
   };
 
@@ -191,12 +207,20 @@ export default function StudyScreen() {
             style={styles.gradient}
           >
             <View style={styles.endContainer}>
+              {showConfetti && (
+                <Image
+                  source={require("../../assets/animations/confetti.gif")}
+                  style={styles.confettiBackground}
+                  resizeMode="cover"
+                />
+              )}
+
               <Image
                 source={require("../../assets/images/pocketlingo-end-session.png")}
                 style={styles.endSessionImage}
                 resizeMode="contain"
               />
-              <Text style={styles.endTitle}>Session Complete </Text>
+              <Text style={styles.endTitle}>Session Complete</Text>
               <Text style={styles.endText}>
                 You studied {sessionStats.studied}{" "}
                 {sessionStats.studied === 1 ? "card" : "cards"} with{" "}
@@ -210,7 +234,11 @@ export default function StudyScreen() {
 
               <TouchableOpacity
                 style={styles.endButton}
-                onPress={() => setSelectedDeck(null)}
+                onPress={() => {
+                  setSelectedDeck(null);
+                  setShowConfetti(false);
+                  hasPlayedConfetti.current = false;
+                }}
               >
                 <Text style={styles.endButtonText}>Back to Decks</Text>
               </TouchableOpacity>
@@ -609,5 +637,11 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     fontWeight: "500",
+  },
+  confettiBackground: {
+    ...StyleSheet.absoluteFillObject,
+    width: "100%",
+    height: "100%",
+    zIndex: 1,
   },
 });
