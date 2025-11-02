@@ -208,11 +208,13 @@ export default function StudyScreen() {
           >
             <View style={styles.endContainer}>
               {showConfetti && (
-                <Image
-                  source={require("../../assets/animations/confetti.gif")}
-                  style={styles.confettiBackground}
-                  resizeMode="cover"
-                />
+                <View style={styles.confettiWrapper} pointerEvents="none">
+                  <Image
+                    source={require("../../assets/animations/confetti.gif")}
+                    style={styles.confettiBackground}
+                    resizeMode="cover"
+                  />
+                </View>
               )}
 
               <Image
@@ -642,6 +644,11 @@ const styles = StyleSheet.create({
     ...StyleSheet.absoluteFillObject,
     width: "100%",
     height: "100%",
+    zIndex: 1,
+  },
+  confettiWrapper: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: "transparent",
     zIndex: 1,
   },
 });
