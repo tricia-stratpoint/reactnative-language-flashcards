@@ -18,6 +18,7 @@ import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import NetInfo from "@react-native-community/netinfo";
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
@@ -29,6 +30,7 @@ export default function StudyScreen() {
   const [username, setUsername] = useState("");
   const isLoading = useFlashcardStore((state) => state.isLoading);
   const [downloadedDecks, setDownloadedDecks] = useState<string[]>([]);
+  const [isConnected, setIsConnected] = useState(true);
 
   const {
     cards,
@@ -116,6 +118,14 @@ export default function StudyScreen() {
     }, [])
   );
 
+  useEffect(() => {
+    const unsubscribe = NetInfo.addEventListener((state) => {
+      setIsConnected(!!state.isConnected);
+    });
+
+    return () => unsubscribe();
+  }, []);
+
   const handleCardSwipe = (difficulty: Flashcard["difficulty"]) => {
     const currentCard = studyCards[currentCardIndex];
     if (!currentCard) return;
@@ -149,7 +159,14 @@ export default function StudyScreen() {
     }
   };
 
-  const startStudySession = (deckId: string) => setSelectedDeck(deckId);
+  const startStudySession = (deckId: string) => {
+    // if offline, only allow downloaded decks to be studied
+    if (!isConnected && !downloadedDecks.includes(deckId)) {
+      console.log("Deck not available offline:", deckId);
+      return;
+    }
+    setSelectedDeck(deckId);
+  };
 
   if (isLoading) {
     return (
@@ -295,11 +312,20 @@ export default function StudyScreen() {
                     styles.deckCard,
                     {
                       backgroundColor: getDeckColor(deck),
-                      opacity: (deckCardCounts[deck.id] || 0) === 0 ? 0.5 : 1,
+                      // dim deck if offline & not downloaded, or if it has no cards
+                      opacity:
+                        (!isConnected && !downloadedDecks.includes(deck.id)) ||
+                        (deckCardCounts[deck.id] || 0) === 0
+                          ? 0.5
+                          : 1,
                     },
                   ]}
+                  // disable if offline & not downloaded, or has no cards
+                  disabled={
+                    (!isConnected && !downloadedDecks.includes(deck.id)) ||
+                    deckCardCounts[deck.id] === 0
+                  }
                   onPress={() => startStudySession(deck.id)}
-                  disabled={deckCardCounts[deck.id] === 0}
                 >
                   <View style={styles.deckHeader}>
                     <Text style={styles.deckName}>{deck.name}</Text>
