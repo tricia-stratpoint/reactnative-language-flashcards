@@ -339,7 +339,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
             progress = newStats.perfectSession ? 1 : a.progress;
             break;
         }
-        const unlockedAt = a.unlockedAt ?? (progress >= a.target ? now : null);
+        const unlockedAt = a.unlockedAt || (progress >= a.target ? now : null);
         return { ...a, progress, unlockedAt };
       });
       return { stats: { ...updatedStats, achievements } };
@@ -371,7 +371,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     }
   },
 
-  studyCard: (cardId, perfectSession) => {
+  studyCard: (cardId: string, isPerfectSession: boolean) => {
     const { stats } = get();
     const todayStr = new Date().toDateString();
     let cardsStudiedToday =
@@ -380,9 +380,9 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         ? [...stats.cardsStudiedToday]
         : [];
 
-    if (cardsStudiedToday.includes(cardId)) return;
-
-    cardsStudiedToday.push(cardId);
+    if (!cardsStudiedToday.includes(cardId)) {
+      cardsStudiedToday.push(cardId);
+    }
 
     const lastDate = stats.lastStudyDate ? new Date(stats.lastStudyDate) : null;
     const yesterday = new Date();
@@ -408,7 +408,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     get().updateAchievements({
       totalCardsStudied: newTotalCards,
       studyStreak: newStreak,
-      perfectSession,
+      perfectSession: isPerfectSession,
     });
   },
 }));

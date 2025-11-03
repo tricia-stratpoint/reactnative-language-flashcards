@@ -152,6 +152,10 @@ export default function StudyScreen() {
         studied: prev.studied + 1,
         correct: prev.correct + 1,
       }));
+
+      useFlashcardStore
+        .getState()
+        .studyCard(currentCard.id, updatedCards.length === 0);
     } else {
       // "again" repeat later but don’t add to total
       const [againCard] = updatedCards.splice(currentCardIndex, 1);
@@ -219,7 +223,7 @@ export default function StudyScreen() {
               />
               <Text style={styles.endTitle}>Session Complete</Text>
               <Text style={styles.endText}>
-                You answered {totalCards} cards with{" "}
+                You studied {totalCards} cards with{" "}
                 {sessionStats.studied > 0
                   ? Math.round(
                       (sessionStats.correct / sessionStats.studied) * 100
@@ -288,7 +292,7 @@ export default function StudyScreen() {
 
           <View style={styles.statsContainer}>
             <Text style={styles.statsText}>
-              Correct: {sessionStats.correct} | Accuracy:{" "}
+              Studied: {sessionStats.correct} | Accuracy:{" "}
               {totalCards > 0
                 ? Math.round((sessionStats.correct / totalCards) * 100)
                 : 0}
