@@ -18,6 +18,7 @@ import { useNavigation } from "@react-navigation/native";
 import {
   showTestNotification,
   handleManageNotifications,
+  scheduleStudyReminder,
 } from "../utils/notifications";
 import { getOfflineDecks, deleteOfflineDeck } from "../utils/offlineStorage";
 
@@ -51,7 +52,11 @@ export default function SettingsScreen() {
   const showAbout = () => setShowAboutModal(true);
 
   const handleTestNotification = async () => {
+    const userId = auth().currentUser?.uid;
+    if (!userId) return;
+
     await showTestNotification();
+    await scheduleStudyReminder(userId);
   };
 
   const loadDecks = useCallback(async () => {

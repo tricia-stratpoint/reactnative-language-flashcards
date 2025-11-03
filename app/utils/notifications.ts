@@ -2,8 +2,10 @@ import messaging from "@react-native-firebase/messaging";
 import notifee, {
   AuthorizationStatus,
   AndroidImportance,
+  TriggerType,
 } from "@notifee/react-native";
 import { Platform, Linking } from "react-native";
+import firestore from "@react-native-firebase/firestore";
 
 // ask for permission
 export async function requestNotificationPermission() {
@@ -151,3 +153,63 @@ export const handleManageNotifications = async () => {
     console.error("Error handling notifications:", error);
   }
 };
+
+export async function scheduleStudyReminder(userId: string) {
+  try {
+    // fetch user data
+    const userDoc = await firestore().collection("users").doc(userId).get();
+    const username = userDoc.data()?.username;
+    if (!username) {
+      console.log(`No username found for user ${userId}, skipping reminder.`);
+      return;
+    }
+
+    // fetch lastStudyDate
+    const progressDoc = await firestore()
+      .collection("users")
+      .doc(userId)
+      .collection("stats")
+      .doc("progress")
+      .get();
+
+    const lastStudyTimestamp = progressDoc.data()?.lastStudyDate;
+    if (!lastStudyTimestamp) {
+      console.log(`No lastStudyDate found for ${username}, skipping reminder.`);
+      return;
+    }
+
+    const lastStudyTime = lastStudyTimestamp.toMillis?.() ?? lastStudyTimestamp;
+
+    if (isNaN(lastStudyTime)) {
+      console.log(`Invalid lastStudyDate for ${username}, skipping reminder.`);
+      return;
+    }
+
+    const nextStudyTime = new Date(lastStudyTime + 24 * 60 * 60 * 1000);
+
+    const channelId = await notifee.createChannel({
+      id: "study-reminder",
+      name: "Study Reminder",
+      importance: AndroidImportance.HIGH,
+    });
+
+    await notifee.createTriggerNotification(
+      {
+        id: `study-reminder-${username}`,
+        title: "Time to study!",
+        body: "Review your flashcards and keep your streak going!",
+        android: {
+          channelId,
+          smallIcon: "ic_launcher",
+          pressAction: { id: "default" },
+        },
+        ios: { sound: "default" },
+      },
+      { type: TriggerType.TIMESTAMP, timestamp: nextStudyTime.getTime() }
+    );
+
+    console.log(`Scheduled study reminder for ${username} at`, nextStudyTime);
+  } catch (error) {
+    console.error("Error scheduling study reminder:", error);
+  }
+}
