@@ -214,6 +214,8 @@ export default function FlashcardComponent({
               styles.indicator,
               {
                 backgroundColor: getDifficultyColor(level as "again" | "good"),
+                marginHorizontal: 5,
+                flex: 1,
               },
             ]}
             onPress={() => onSwipe(level as "again" | "good")}
@@ -283,21 +285,20 @@ const styles = StyleSheet.create({
   },
   indicators: {
     flexDirection: "row",
-    justifyContent: "space-between",
+    justifyContent: "center",
     marginTop: 30,
-    paddingHorizontal: 20,
   },
   indicator: {
     paddingHorizontal: 16,
     paddingVertical: 8,
     borderRadius: 20,
-    minWidth: 60,
     alignItems: "center",
   },
   indicatorText: {
     color: "#ffffff",
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: "600",
+    textAlign: "center",
     textTransform: "capitalize",
   },
 });
