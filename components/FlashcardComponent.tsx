@@ -32,7 +32,7 @@ const CardFlipTyped = CardFlip as unknown as React.ComponentType<{
 
 interface FlashcardComponentProps {
   card: Flashcard;
-  onSwipe: (direction: "again" | "hard" | "good" | "easy") => void;
+  onSwipe: (difficulty: "good" | "again") => void;
 }
 
 export default function FlashcardComponent({
@@ -55,14 +55,8 @@ export default function FlashcardComponent({
   });
 
   const overlayColor = panAnimation.x.interpolate({
-    inputRange: [
-      -screenWidth,
-      -screenWidth / 3,
-      0,
-      screenWidth / 3,
-      screenWidth,
-    ],
-    outputRange: ["#ef4444", "#f97316", "transparent", "#22c55e", "#3b82f6"],
+    inputRange: [-screenWidth / 3, 0, screenWidth / 3],
+    outputRange: ["#ef4444", "transparent", "#22c55e"],
     extrapolate: "clamp",
   });
 
@@ -105,17 +99,18 @@ export default function FlashcardComponent({
       const velocityThreshold = 500;
 
       if (Math.abs(dx) > swipeThreshold || Math.abs(vx) > velocityThreshold) {
-        if (dx > 0) {
-          onSwipe(dx > screenWidth / 3 ? "easy" : "good");
-        } else {
-          onSwipe(Math.abs(dx) > screenWidth / 3 ? "again" : "hard");
-        }
+        const direction = dx > 0 ? "right" : "left";
+        const toValueX = direction === "right" ? screenWidth : -screenWidth;
+        const difficulty = direction === "right" ? "good" : "again";
 
         Animated.timing(panAnimation, {
-          toValue: { x: dx > 0 ? screenWidth : -screenWidth, y: dy },
-          duration: 300,
+          toValue: { x: toValueX, y: dy },
+          duration: 250,
           useNativeDriver: true,
-        }).start();
+        }).start(() => {
+          panAnimation.setValue({ x: 0, y: 0 });
+          onSwipe(difficulty);
+        });
       } else {
         Animated.spring(panAnimation, {
           toValue: { x: 0, y: 0 },
@@ -131,7 +126,6 @@ export default function FlashcardComponent({
         await Tts.getInitStatus();
         await Tts.setDefaultPitch(1.0);
         await Tts.setDefaultRate(0.5, true);
-        await Tts.setDefaultLanguage("en-US");
       } catch (err) {
         console.warn("TTS initialization error:", err);
       }
@@ -153,20 +147,8 @@ export default function FlashcardComponent({
 
   const handleFlip = () => cardFlipRef.current?.flip();
 
-  const getDifficultyColor = (direction: string) => {
-    switch (direction) {
-      case "again":
-        return "#ef4444";
-      case "hard":
-        return "#f97316";
-      case "good":
-        return "#22c55e";
-      case "easy":
-        return "#3b82f6";
-      default:
-        return "#6b7280";
-    }
-  };
+  const getDifficultyColor = (difficulty: "good" | "again") =>
+    difficulty === "good" ? "#22c55e" : "#ef4444";
 
   return (
     <View style={styles.container}>
@@ -225,14 +207,16 @@ export default function FlashcardComponent({
       </Animated.View>
 
       <View style={[styles.indicators, { width: CARD_WIDTH }]}>
-        {["again", "hard", "good", "easy"].map((level) => (
+        {["again", "good"].map((level) => (
           <TouchableOpacity
             key={level}
             style={[
               styles.indicator,
-              { backgroundColor: getDifficultyColor(level) },
+              {
+                backgroundColor: getDifficultyColor(level as "again" | "good"),
+              },
             ]}
-            onPress={() => onSwipe(level as "again" | "hard" | "good" | "easy")}
+            onPress={() => onSwipe(level as "again" | "good")}
           >
             <Text style={styles.indicatorText}>{level}</Text>
           </TouchableOpacity>

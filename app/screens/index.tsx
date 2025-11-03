@@ -34,6 +34,7 @@ export default function StudyScreen() {
   const [isConnected, setIsConnected] = useState(true);
   const [showConfetti, setShowConfetti] = useState(false);
   const hasPlayedConfetti = useRef(false);
+  const [totalCards, setTotalCards] = useState(0);
 
   const {
     cards,
@@ -77,18 +78,28 @@ export default function StudyScreen() {
     deckId: string,
     deckLang: Deck["language"]
   ) => {
-    const snapshot = await firestore()
-      .collection("flashcards")
-      .doc(deckLang)
-      .collection("decks")
-      .doc(deckId)
-      .collection("cards")
-      .get();
-    const fetchedCards: Flashcard[] = snapshot.docs.map(
-      (doc) => ({ id: doc.id, language: deckLang, ...doc.data() } as Flashcard)
-    );
+    try {
+      const snapshot = await firestore()
+        .collection("flashcards")
+        .doc(deckLang)
+        .collection("decks")
+        .doc(deckId)
+        .collection("cards")
+        .orderBy("createdAt", "asc")
+        .get();
 
-    setStudyCards(fetchedCards);
+      const fetchedCards: Flashcard[] = snapshot.docs.map(
+        (doc) =>
+          ({ id: doc.id, language: deckLang, ...doc.data() } as Flashcard)
+      );
+
+      setStudyCards(fetchedCards);
+      return fetchedCards;
+    } catch (error) {
+      console.error("Error fetching flashcards:", error);
+      setStudyCards([]);
+      return [];
+    }
   };
 
   useEffect(() => {
@@ -99,7 +110,11 @@ export default function StudyScreen() {
   useEffect(() => {
     if (selectedDeck) {
       const deck = decks.find((d) => d.id === selectedDeck);
-      if (deck) fetchFlashcards(deck.id, deck.language);
+      if (deck) {
+        fetchFlashcards(deck.id, deck.language).then((fetched) => {
+          setTotalCards(fetched.length);
+        });
+      }
       setCurrentCardIndex(0);
       setSessionStats({ studied: 0, correct: 0 });
     }
@@ -107,8 +122,8 @@ export default function StudyScreen() {
 
   useEffect(() => {
     if (
-      currentCardIndex >= studyCards.length &&
-      studyCards.length > 0 &&
+      currentCardIndex >= totalCards &&
+      totalCards > 0 &&
       !hasPlayedConfetti.current
     ) {
       hasPlayedConfetti.current = true;
@@ -116,7 +131,7 @@ export default function StudyScreen() {
       const timer = setTimeout(() => setShowConfetti(false), 1900);
       return () => clearTimeout(timer);
     }
-  }, [currentCardIndex, studyCards.length]);
+  }, [currentCardIndex, totalCards]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -146,32 +161,36 @@ export default function StudyScreen() {
     const currentCard = studyCards[currentCardIndex];
     if (!currentCard) return;
 
-    const isCorrect = difficulty === "good" || difficulty === "easy";
+    const updatedCards = [...studyCards];
 
-    // update local session stats
-    setSessionStats((prev) => ({
-      studied: prev.studied + 1,
-      correct: prev.correct + (isCorrect ? 1 : 0),
-    }));
+    if (difficulty === "good") {
+      // remove the card permanently from session
+      updatedCards.splice(currentCardIndex, 1);
 
-    // update card difficulty in global store
-    const updatedCards: Flashcard[] = cards.map((card) =>
-      card.id === currentCard.id ? { ...card, difficulty } : card
-    );
-    setCards(updatedCards);
+      setSessionStats((prev) => ({
+        studied: prev.studied + 1,
+        correct: prev.correct + 1,
+      }));
+    } else {
+      // "again" repeat later but don’t add to total
+      const [againCard] = updatedCards.splice(currentCardIndex, 1);
+      // insert 2 cards later or at end
+      const insertAt = Math.min(currentCardIndex + 2, updatedCards.length);
+      updatedCards.splice(insertAt, 0, againCard);
 
-    // update global stats
-    const prevStats = useFlashcardStore.getState().stats;
-    useFlashcardStore.getState().updateAchievements({
-      totalCardsStudied: prevStats.totalCardsStudied + 1,
-      perfectSession: isCorrect,
-    });
+      setSessionStats((prev) => ({
+        ...prev,
+        studied: prev.studied + 1,
+      }));
+    }
 
-    if (currentCardIndex < studyCards.length - 1) {
-      setCurrentCardIndex((prev) => prev + 1);
+    setStudyCards(updatedCards);
+
+    if (updatedCards.length === 0) {
+      setCurrentCardIndex(totalCards);
     } else {
       // Session complete - show completion message
-      setCurrentCardIndex(studyCards.length);
+      setCurrentCardIndex((prev) => (prev >= updatedCards.length ? 0 : prev));
     }
   };
 
@@ -198,9 +217,9 @@ export default function StudyScreen() {
     );
   }
 
-  if (selectedDeck && studyCards.length > 0) {
+  if (selectedDeck) {
     // End-of-session screen
-    if (currentCardIndex >= studyCards.length) {
+    if (studyCards.length === 0 && totalCards > 0) {
       return (
         <View style={[styles.container, { paddingTop: insets.top }]}>
           <LinearGradient
@@ -225,8 +244,7 @@ export default function StudyScreen() {
               />
               <Text style={styles.endTitle}>Session Complete</Text>
               <Text style={styles.endText}>
-                You studied {sessionStats.studied}{" "}
-                {sessionStats.studied === 1 ? "card" : "cards"} with{" "}
+                You answered {totalCards} cards with{" "}
                 {sessionStats.studied > 0
                   ? Math.round(
                       (sessionStats.correct / sessionStats.studied) * 100
@@ -241,6 +259,9 @@ export default function StudyScreen() {
                   setSelectedDeck(null);
                   setShowConfetti(false);
                   hasPlayedConfetti.current = false;
+                  setStudyCards([]);
+                  setTotalCards(0);
+                  setSessionStats({ studied: 0, correct: 0 });
                 }}
               >
                 <Text style={styles.endButtonText}>Back to Decks</Text>
@@ -252,7 +273,8 @@ export default function StudyScreen() {
     }
 
     const currentCard = studyCards[currentCardIndex];
-    const progress = ((currentCardIndex + 1) / studyCards.length) * 100;
+    const progress =
+      totalCards > 0 ? (sessionStats.correct / totalCards) * 100 : 0;
 
     // learning flashcards page
     return (
@@ -269,7 +291,7 @@ export default function StudyScreen() {
               <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
             <Text style={styles.progressText}>
-              {currentCardIndex + 1} / {studyCards.length}
+              {sessionStats.correct} / {totalCards}
             </Text>
           </View>
 
@@ -278,20 +300,24 @@ export default function StudyScreen() {
           </View>
 
           <View style={styles.studyContainer}>
-            <FlashcardComponent
-              key={currentCard.id}
-              card={currentCard}
-              onSwipe={handleCardSwipe}
-            />
+            {studyCards.length > 0 && currentCard ? (
+              <FlashcardComponent
+                key={currentCard.id}
+                card={currentCard}
+                onSwipe={handleCardSwipe}
+              />
+            ) : (
+              <Text style={{ color: Colors.white, fontSize: 16 }}>
+                Loading card...
+              </Text>
+            )}
           </View>
 
           <View style={styles.statsContainer}>
             <Text style={styles.statsText}>
-              Studied: {sessionStats.studied} | Accuracy:{" "}
-              {sessionStats.studied > 0
-                ? Math.round(
-                    (sessionStats.correct / sessionStats.studied) * 100
-                  )
+              Correct: {sessionStats.correct} | Accuracy:{" "}
+              {totalCards > 0
+                ? Math.round((sessionStats.correct / totalCards) * 100)
                 : 0}
               %
             </Text>

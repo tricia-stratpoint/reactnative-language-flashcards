@@ -11,7 +11,7 @@ export interface Flashcard {
   interval: number;
   easeFactor: number;
   repetitions: number;
-  difficulty: "again" | "hard" | "good" | "easy";
+  difficulty: "again" | "good";
   wordFrequency?: number;
   language: "spanish" | "french" | "custom";
   isCustom?: boolean;
