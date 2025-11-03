@@ -143,40 +143,38 @@ export default function StudyScreen() {
     if (!currentCard) return;
 
     const updatedCards = [...studyCards];
+    let newCorrect = sessionStats.correct;
 
     if (difficulty === "good") {
-      // remove the card permanently from session
+      newCorrect += 1;
       updatedCards.splice(currentCardIndex, 1);
-
-      setSessionStats((prev) => ({
-        studied: prev.studied + 1,
-        correct: prev.correct + 1,
-      }));
-
-      useFlashcardStore
-        .getState()
-        .studyCard(currentCard.id, updatedCards.length === 0);
     } else {
       // "again" repeat later but don’t add to total
       const [againCard] = updatedCards.splice(currentCardIndex, 1);
       // insert 2 cards later or at end
       const insertAt = Math.min(currentCardIndex + 2, updatedCards.length);
       updatedCards.splice(insertAt, 0, againCard);
-
-      setSessionStats((prev) => ({
-        ...prev,
-        studied: prev.studied + 1,
-      }));
     }
+
+    const newStudied = sessionStats.studied + 1;
+    setSessionStats({
+      studied: newStudied,
+      correct: newCorrect,
+    });
+
+    const perfectSession =
+      newStudied === totalCards && newCorrect === totalCards;
+
+    useFlashcardStore.getState().studyCard(currentCard.id, perfectSession);
 
     setStudyCards(updatedCards);
-
-    if (updatedCards.length === 0) {
-      setCurrentCardIndex(totalCards);
-    } else {
-      // Session complete - show completion message
-      setCurrentCardIndex((prev) => (prev >= updatedCards.length ? 0 : prev));
-    }
+    setCurrentCardIndex((prev) =>
+      updatedCards.length === 0
+        ? totalCards
+        : prev >= updatedCards.length
+        ? 0
+        : prev
+    );
   };
 
   const startStudySession = (deckId: string) => {
