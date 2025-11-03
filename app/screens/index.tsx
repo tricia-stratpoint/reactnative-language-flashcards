@@ -20,6 +20,7 @@ import firestore from "@react-native-firebase/firestore";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
+import ConfettiCannon from "react-native-confetti-cannon";
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
@@ -32,16 +33,9 @@ export default function StudyScreen() {
   const isLoading = useFlashcardStore((state) => state.isLoading);
   const [downloadedDecks, setDownloadedDecks] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(true);
-  const [showConfetti, setShowConfetti] = useState(false);
-  const hasPlayedConfetti = useRef(false);
   const [totalCards, setTotalCards] = useState(0);
 
-  const {
-    cards,
-    loadAllLanguages,
-    setCards,
-    decks: storeDecks,
-  } = useFlashcardStore();
+  const { cards, loadAllLanguages, decks: storeDecks } = useFlashcardStore();
 
   useEffect(() => {
     const init = async () => {
@@ -120,19 +114,6 @@ export default function StudyScreen() {
     }
   }, [selectedDeck, decks]);
 
-  useEffect(() => {
-    if (
-      currentCardIndex >= totalCards &&
-      totalCards > 0 &&
-      !hasPlayedConfetti.current
-    ) {
-      hasPlayedConfetti.current = true;
-      setShowConfetti(true);
-      const timer = setTimeout(() => setShowConfetti(false), 1900);
-      return () => clearTimeout(timer);
-    }
-  }, [currentCardIndex, totalCards]);
-
   useFocusEffect(
     React.useCallback(() => {
       const loadDownloads = async () => {
@@ -200,7 +181,6 @@ export default function StudyScreen() {
       console.log("Deck not available offline:", deckId);
       return;
     }
-    hasPlayedConfetti.current = false;
     setSelectedDeck(deckId);
   };
 
@@ -227,16 +207,11 @@ export default function StudyScreen() {
             style={styles.gradient}
           >
             <View style={styles.endContainer}>
-              {showConfetti && (
-                <View style={styles.confettiWrapper} pointerEvents="none">
-                  <Image
-                    source={require("../../assets/animations/confetti.gif")}
-                    style={styles.confettiBackground}
-                    resizeMode="cover"
-                  />
-                </View>
-              )}
-
+              <ConfettiCannon
+                key={Date.now()}
+                count={200}
+                origin={{ x: -10, y: 0 }}
+              />
               <Image
                 source={require("../../assets/images/pocketlingo-end-session.png")}
                 style={styles.endSessionImage}
@@ -257,8 +232,6 @@ export default function StudyScreen() {
                 style={styles.endButton}
                 onPress={() => {
                   setSelectedDeck(null);
-                  setShowConfetti(false);
-                  hasPlayedConfetti.current = false;
                   setStudyCards([]);
                   setTotalCards(0);
                   setSessionStats({ studied: 0, correct: 0 });
@@ -660,17 +633,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     fontStyle: "italic",
     fontWeight: "500",
-  },
-  confettiBackground: {
-    ...StyleSheet.absoluteFillObject,
-    width: "100%",
-    height: "100%",
-    zIndex: 1,
-  },
-  confettiWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    backgroundColor: "transparent",
-    zIndex: 1,
   },
   loadingGradient: {
     justifyContent: "center",
