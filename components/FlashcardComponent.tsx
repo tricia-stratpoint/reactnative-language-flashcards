@@ -55,8 +55,14 @@ export default function FlashcardComponent({
   });
 
   const overlayColor = panAnimation.x.interpolate({
-    inputRange: [-screenWidth / 3, 0, screenWidth / 3],
-    outputRange: ["#ef4444", "transparent", "#22c55e"],
+    inputRange: [
+      -screenWidth,
+      -screenWidth / 3,
+      0,
+      screenWidth / 3,
+      screenWidth,
+    ],
+    outputRange: ["#ef4444", "#ef4444", "transparent", "#22c55e", "#22c55e"],
     extrapolate: "clamp",
   });
 
