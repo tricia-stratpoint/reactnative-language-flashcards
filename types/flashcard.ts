@@ -48,7 +48,6 @@ export interface UserStats {
   totalCardsStudied: number;
   studyStreak: number;
   lastStudyDate: number | null;
-  totalStudyTime: number;
   achievements: Achievement[];
   cardsStudiedToday: string[];
 }

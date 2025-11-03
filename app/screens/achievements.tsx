@@ -47,12 +47,6 @@ export default function AchievementsScreen() {
     return 0;
   };
 
-  const formatStudyTime = (minutes: number) => {
-    const hours = Math.floor(minutes / 60);
-    const mins = minutes % 60;
-    return hours > 0 ? `${hours}h ${mins}m` : `${mins}m`;
-  };
-
   return (
     <View style={[styles.container, { paddingTop: insets.top }]}>
       <LinearGradient
@@ -81,9 +75,9 @@ export default function AchievementsScreen() {
             <View style={styles.statCard}>
               <Star size={24} color={Colors.orange} />
               <Text style={styles.statNumber}>
-                {formatStudyTime(stats.totalStudyTime)}
+                {stats.achievements.filter((a) => a.unlockedAt !== null).length}
               </Text>
-              <Text style={styles.statLabel}>Study Time</Text>
+              <Text style={styles.statLabel}>Unlocked</Text>
             </View>
           </View>
 

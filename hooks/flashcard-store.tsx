@@ -100,7 +100,6 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     totalCardsStudied: 0,
     studyStreak: 0,
     lastStudyDate: null,
-    totalStudyTime: 0,
     achievements: [],
     cardsStudiedToday: [],
   },
@@ -297,7 +296,6 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
             totalCardsStudied: data?.totalCardsStudied ?? 0,
             studyStreak: data?.studyStreak ?? 0,
             lastStudyDate: toMillis(data?.lastStudyDate) ?? null,
-            totalStudyTime: data?.totalStudyTime ?? 0,
             cardsStudiedToday: data?.cardsStudiedToday ?? [],
             achievements: data?.achievements?.length
               ? data.achievements
@@ -309,7 +307,6 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
           totalCardsStudied: 0,
           studyStreak: 0,
           lastStudyDate: null,
-          totalStudyTime: 0,
           achievements: DEFAULT_ACHIEVEMENTS,
           cardsStudiedToday: [],
         };
@@ -361,7 +358,6 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         lastStudyDate: currentStats.lastStudyDate
           ? new Date(currentStats.lastStudyDate)
           : null,
-        totalStudyTime: currentStats.totalStudyTime,
         achievements: currentStats.achievements,
         cardsStudiedToday: currentStats.cardsStudiedToday,
         updatedAt: firestore.FieldValue.serverTimestamp(),
@@ -371,7 +367,11 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     }
   },
 
-  studyCard: (cardId: string, isPerfectSession: boolean) => {
+  studyCard: (
+    cardId: string,
+    isPerfectSession: boolean,
+    studyMinutes: number = 0
+  ) => {
     const { stats } = get();
     const todayStr = new Date().toDateString();
     let cardsStudiedToday =
@@ -433,7 +433,6 @@ export const resetUserProgress = async () => {
       totalCardsStudied: 0,
       studyStreak: 0,
       lastStudyDate: null,
-      totalStudyTime: 0,
       achievements: resetAchievements,
       cardsStudiedToday: [],
       updatedAt: firestore.FieldValue.serverTimestamp(),
@@ -445,7 +444,6 @@ export const resetUserProgress = async () => {
       totalCardsStudied: 0,
       studyStreak: 0,
       lastStudyDate: null,
-      totalStudyTime: 0,
       achievements: resetAchievements,
       cardsStudiedToday: [],
     });
