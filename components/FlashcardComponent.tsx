@@ -54,7 +54,13 @@ export default function FlashcardComponent({
       screenWidth / 3,
       screenWidth,
     ],
-    outputRange: ["#ef4444", "#ef4444", "transparent", "#22c55e", "#22c55e"],
+    outputRange: [
+      Colors.red,
+      Colors.red,
+      "transparent",
+      Colors.tealDark,
+      Colors.tealDark,
+    ],
     extrapolate: "clamp",
   });
 
@@ -146,7 +152,7 @@ export default function FlashcardComponent({
   const handleFlip = () => setIsFlipped((prev) => !prev);
 
   const getDifficultyColor = (difficulty: "good" | "again") =>
-    difficulty === "good" ? "#22c55e" : "#ef4444";
+    difficulty === "good" ? Colors.tealDark : Colors.red;
 
   return (
     <View style={styles.container}>
