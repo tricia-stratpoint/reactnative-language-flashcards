@@ -77,42 +77,54 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     }
   }, [deck]);
 
+  const isGlobalDeck = deck
+    ? deck.language === "spanish" || deck.language === "french"
+    : false;
+  const isCustomDeck = !isGlobalDeck;
+  const isUserDeck = isCustomDeck;
+
   useEffect(() => {
     if (!deck) return;
     (async () => {
-      const downloaded = await isDeckOffline(deck.id);
+      const downloaded = await isDeckOffline(deck.id, isUserDeck);
       setIsDownloaded(downloaded);
     })();
-  }, [deck]);
+  }, [deck, isUserDeck]);
 
   if (!deck) return null;
 
-  const isCustomDeck = deck.language === "custom";
-  const isCustomCard = (card: Flashcard) => card.isCustom;
-
   const handleAddCard = async () => {
-    if (!cardFront.trim() || !cardBack.trim()) return;
-    if (showAddCard) {
-      const deck = decks.find((d) => d.id === showAddCard);
-      if (!deck) return;
-      await addCard(deck.language, deck.id, cardFront.trim(), cardBack.trim());
-      setCardFront("");
-      setCardBack("");
-      setShowAddCard(null);
-    }
+    if (!cardFront.trim() || !cardBack.trim() || !deck) return;
+    if (!isCustomDeck) return;
+    await addCard(deck.id, cardFront.trim(), cardBack.trim());
+    setCardFront("");
+    setCardBack("");
+    setShowAddCard(null);
   };
-  const handleEditDeck = () => {
-    setShowEditDeck(true);
-  };
+
   const handleSaveDeck = async () => {
-    if (!editName.trim()) return;
-    await updateDeck(deckId, deck.language, {
+    if (!editName.trim() || !deck || !isCustomDeck) return;
+    await updateDeck(deck.id, {
       name: editName.trim(),
       description: editDescription.trim(),
       color: selectedColor || deck.color,
     });
     setShowEditDeck(false);
   };
+
+  const handleSaveCard = async () => {
+    if (!editingCard || !cardFront.trim() || !cardBack.trim() || !deck) return;
+    if (!isCustomDeck) return;
+    await updateCard(deck.id, editingCard.id, {
+      front: cardFront.trim(),
+      back: cardBack.trim(),
+    });
+    setEditingCard(null);
+    setCardFront("");
+    setCardBack("");
+  };
+
+  const handleEditDeck = () => setShowEditDeck(true);
 
   const handleEditCard = (cardId: string) => {
     const card = deckCards.find((c) => c.id === cardId);
@@ -122,22 +134,15 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     setCardBack(card.back);
   };
 
-  const handleSaveCard = async () => {
-    if (!editingCard || !cardFront.trim() || !cardBack.trim()) return;
-
-    await updateCard(deck.language, deck.id, editingCard.id, {
-      front: cardFront.trim(),
-      back: cardBack.trim(),
-    });
-
-    setEditingCard(null);
-    setCardFront("");
-    setCardBack("");
+  const handleDeleteCard = async (cardId: string) => {
+    if (!deck || !isCustomDeck) return;
+    await deleteCard(deck.id, cardId);
   };
 
-  const handleDeleteCard = async (cardId: string) => {
-    if (!deck) return;
-    await deleteCard(deck.language, deck.id, cardId);
+  const handleDeleteDeck = async () => {
+    if (!deck || !isCustomDeck) return;
+    await deleteDeck(deck.id);
+    navigation.goBack();
   };
 
   return (
@@ -161,12 +166,14 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
         <Text style={styles.description}>{deck.description}</Text>
 
         <View style={styles.actions}>
-          <TouchableOpacity
-            style={[styles.button, { backgroundColor: Colors.greenMint }]}
-            onPress={() => setShowAddCard(deck.id)}
-          >
-            <Text style={styles.buttonText}>Add Card</Text>
-          </TouchableOpacity>
+          {isCustomDeck && (
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: Colors.greenMint }]}
+              onPress={() => setShowAddCard(deck.id)}
+            >
+              <Text style={styles.buttonText}>Add Card</Text>
+            </TouchableOpacity>
+          )}
 
           {isCustomDeck && (
             <>
@@ -196,8 +203,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                   <Text style={styles.cardFront}>{item.front}</Text>
                   <Text style={styles.cardBack}>{item.back}</Text>
                 </View>
-
-                {isCustomCard(item) && (
+                {isCustomDeck && (
                   <View style={styles.cardActions}>
                     <TouchableOpacity onPress={() => handleEditCard(item.id)}>
                       <Pencil color={Colors.blue} size={20} />
@@ -220,9 +226,11 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
           ListEmptyComponent={
             <View style={styles.emptyState}>
               <Text style={styles.emptyTitle}>No cards yet.</Text>
-              <Text style={styles.emptyDescription}>
-                Tap &quot;Add Card&quot; to create your first one!
-              </Text>
+              {isCustomDeck && (
+                <Text style={styles.emptyDescription}>
+                  Tap &quot;Add Card&quot; to create your first one!
+                </Text>
+              )}
             </View>
           }
         />
@@ -349,9 +357,8 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                     { backgroundColor: Colors.red },
                   ]}
                   onPress={async () => {
-                    await deleteDeck(deck.id, deck.language); // remove from db
+                    await handleDeleteDeck();
                     setShowDeleteDeckModal(false);
-                    navigation.goBack(); // remove from ui
                   }}
                 >
                   <Text style={styles.createButtonText}>Delete</Text>
@@ -460,7 +467,7 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                 <TouchableOpacity
                   style={[styles.modalButton, styles.createButton]}
                   onPress={async () => {
-                    await saveDeckOffline(deck, deckCards);
+                    await saveDeckOffline(deck, deckCards, isUserDeck);
                     setShowDownloadModal(false);
                     setIsDownloaded(true);
                   }}

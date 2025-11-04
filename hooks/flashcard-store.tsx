@@ -52,6 +52,7 @@ const toMillis = (ts?: FirebaseFirestoreTypes.Timestamp | number | Date) =>
     : ts instanceof Date
     ? ts.getTime()
     : ts ?? Date.now();
+
 interface FlashcardState {
   decks: Deck[];
   cards: Flashcard[];
@@ -62,34 +63,19 @@ interface FlashcardState {
   setStats: (stats: UserStats) => void;
   loadAllLanguages: () => Promise<void>;
   createDeck: (
-    language: Deck["language"],
     name: string,
     description: string,
     color: string
   ) => Promise<void>;
-  updateDeck: (
-    deckId: string,
-    language: Deck["language"],
-    updatedData: Partial<Deck>
-  ) => Promise<void>;
-  deleteDeck: (deckId: string, language: Deck["language"]) => Promise<void>;
-  addCard: (
-    language: Flashcard["language"],
-    deckId: string,
-    front: string,
-    back: string
-  ) => Promise<void>;
+  updateDeck: (deckId: string, updatedData: Partial<Deck>) => Promise<void>;
+  deleteDeck: (deckId: string) => Promise<void>;
+  addCard: (deckId: string, front: string, back: string) => Promise<void>;
   updateCard: (
-    language: Flashcard["language"],
     deckId: string,
     cardId: string,
     updatedData: Partial<Flashcard>
   ) => Promise<void>;
-  deleteCard: (
-    language: Flashcard["language"],
-    deckId: string,
-    cardId: string
-  ) => Promise<void>;
+  deleteCard: (deckId: string, cardId: string) => Promise<void>;
   fetchAchievements: () => Promise<void>;
   updateAchievements: (
     newStats: Partial<UserStats> & { perfectSession?: boolean }
@@ -115,43 +101,62 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   loadAllLanguages: async () => {
     set({ isLoading: true });
     try {
+      const user = auth().currentUser;
+      if (!user) return;
+
       const allDecks: Deck[] = [];
       const allCards: Flashcard[] = [];
 
-      for (const lang of SUPPORTED_LANGUAGES) {
+      // load shared spanish & french decks
+      for (const lang of SUPPORTED_LANGUAGES.filter((l) => l !== "custom")) {
         const decksSnap = await firestore()
           .collection(`flashcards/${lang}/decks`)
           .get();
-        const loadedDecks = decksSnap.docs.map(
-          (doc) => ({ id: doc.id, language: lang, ...doc.data() } as Deck)
+        const sharedDecks = decksSnap.docs.map(
+          (d) => ({ id: d.id, language: lang, ...d.data() } as Deck)
         );
-        allDecks.push(...loadedDecks);
+        allDecks.push(...sharedDecks);
 
-        for (const deck of loadedDecks) {
+        for (const deck of sharedDecks) {
           const cardsSnap = await firestore()
             .collection(`flashcards/${lang}/decks/${deck.id}/cards`)
             .get();
-          const deckCards = cardsSnap.docs.map((doc) => {
-            const data = doc.data();
-            return {
-              id: doc.id,
-              deckId: deck.id,
-              language: lang,
-              front: data.front,
-              back: data.back,
-              interval: data.interval,
-              easeFactor: data.easeFactor,
-              repetitions: data.repetitions,
-              difficulty: data.difficulty,
-              createdAt: toMillis(data.createdAt),
-              lastReviewed: toMillis(data.lastReviewed),
-              nextReview: toMillis(data.nextReview),
-              isCustom: data.isCustom,
-              wordFrequency: data.wordFrequency,
-            } as Flashcard;
-          });
+          const deckCards = cardsSnap.docs.map((doc) => ({
+            id: doc.id,
+            deckId: deck.id,
+            language: lang,
+            ...doc.data(),
+            createdAt: toMillis(doc.data().createdAt),
+            lastReviewed: toMillis(doc.data().lastReviewed),
+            nextReview: toMillis(doc.data().nextReview),
+          })) as Flashcard[];
           allCards.push(...deckCards);
         }
+      }
+
+      // load user custom decks
+      const customDecksSnap = await firestore()
+        .collection(`users/${user.uid}/customDecks`)
+        .get();
+
+      const userDecks = customDecksSnap.docs.map(
+        (d) => ({ id: d.id, language: "custom", ...d.data() } as Deck)
+      );
+      allDecks.push(...userDecks);
+
+      for (const deck of userDecks) {
+        const userCardsSnap = await firestore()
+          .collection(`users/${user.uid}/customDecks/${deck.id}/cards`)
+          .get();
+        const userCards = userCardsSnap.docs.map((doc) => ({
+          id: doc.id,
+          deckId: deck.id,
+          language: "custom",
+          ...doc.data(),
+          createdAt: toMillis(doc.data().createdAt),
+          nextReview: toMillis(doc.data().nextReview),
+        })) as Flashcard[];
+        allCards.push(...userCards);
       }
 
       set({ decks: allDecks, cards: allCards });
@@ -162,57 +167,64 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     }
   },
 
-  createDeck: async (language, name, description, color) => {
-    const deckLanguage = name.toLowerCase().includes("custom")
-      ? "custom"
-      : language;
-    const newDeck = { name, description, color };
+  createDeck: async (name, description, color) => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    const newDeck = {
+      name,
+      description,
+      color,
+      createdAt: firestore.FieldValue.serverTimestamp(),
+    };
     const ref = await firestore()
-      .collection(`flashcards/${deckLanguage}/decks`)
-      .add({ ...newDeck, createdAt: firestore.FieldValue.serverTimestamp() });
+      .collection(`users/${user.uid}/customDecks`)
+      .add(newDeck);
+
     set((state) => ({
-      decks: [
-        ...state.decks,
-        { ...newDeck, id: ref.id, language: deckLanguage },
-      ],
+      decks: [...state.decks, { ...newDeck, id: ref.id, language: "custom" }],
     }));
   },
 
-  updateDeck: async (deckId, language, updatedData) => {
-    try {
+  updateDeck: async (deckId, updatedData) => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    await firestore()
+      .doc(`users/${user.uid}/customDecks/${deckId}`)
+      .update(updatedData);
+
+    set((state) => ({
+      decks: state.decks.map((d) =>
+        d.id === deckId ? { ...d, ...updatedData } : d
+      ),
+    }));
+  },
+
+  deleteDeck: async (deckId) => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    const deckCards = get().cards.filter(
+      (c) => c.deckId === deckId && c.language === "custom"
+    );
+    for (const card of deckCards) {
       await firestore()
-        .doc(`flashcards/${language}/decks/${deckId}`)
-        .update(updatedData);
-      set((state) => ({
-        decks: state.decks.map((d) =>
-          d.id === deckId ? { ...d, ...updatedData } : d
-        ),
-      }));
-    } catch (err) {
-      console.error("Error updating deck:", err);
+        .doc(`users/${user.uid}/customDecks/${deckId}/cards/${card.id}`)
+        .delete();
     }
+    await firestore().doc(`users/${user.uid}/customDecks/${deckId}`).delete();
+
+    set((state) => ({
+      decks: state.decks.filter((d) => d.id !== deckId),
+      cards: state.cards.filter((c) => c.deckId !== deckId),
+    }));
   },
 
-  deleteDeck: async (deckId, language) => {
-    try {
-      const cardsToDelete = get().cards.filter((c) => c.deckId === deckId);
-      for (const card of cardsToDelete)
-        await firestore()
-          .doc(`flashcards/${language}/decks/${deckId}/cards/${card.id}`)
-          .delete();
-      await firestore().doc(`flashcards/${language}/decks/${deckId}`).delete();
-      set((state) => ({
-        decks: state.decks.filter((d) => d.id !== deckId),
-        cards: state.cards.filter((c) => c.deckId !== deckId),
-      }));
-    } catch (err) {
-      console.error("Error deleting deck:", err);
-    }
-  },
+  addCard: async (deckId, front, back) => {
+    const user = auth().currentUser;
+    if (!user) return;
 
-  addCard: async (language, deckId, front, back) => {
-    const deck = get().decks.find((d) => d.id === deckId);
-    const cardLanguage = deck?.language || language;
     const newCard = {
       front,
       back,
@@ -225,16 +237,18 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       difficulty: "good" as const,
       isCustom: true,
     };
+
     const ref = await firestore()
-      .collection(`flashcards/${cardLanguage}/decks/${deckId}/cards`)
+      .collection(`users/${user.uid}/customDecks/${deckId}/cards`)
       .add(newCard);
+
     set((state) => ({
       cards: [
         ...state.cards,
         {
           ...newCard,
           id: ref.id,
-          language: cardLanguage,
+          language: "custom",
           createdAt: Date.now(),
           nextReview: Date.now(),
         },
@@ -242,30 +256,28 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     }));
   },
 
-  updateCard: async (language, deckId, cardId, updatedData) => {
-    try {
-      await firestore()
-        .doc(`flashcards/${language}/decks/${deckId}/cards/${cardId}`)
-        .update(updatedData);
-      set((state) => ({
-        cards: state.cards.map((c) =>
-          c.id === cardId ? { ...c, ...updatedData } : c
-        ),
-      }));
-    } catch (err) {
-      console.error("Error updating card:", err);
-    }
+  updateCard: async (deckId, cardId, updatedData) => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    await firestore()
+      .doc(`users/${user.uid}/customDecks/${deckId}/cards/${cardId}`)
+      .update(updatedData);
+    set((state) => ({
+      cards: state.cards.map((c) =>
+        c.id === cardId ? { ...c, ...updatedData } : c
+      ),
+    }));
   },
 
-  deleteCard: async (language, deckId, cardId) => {
-    try {
-      await firestore()
-        .doc(`flashcards/${language}/decks/${deckId}/cards/${cardId}`)
-        .delete();
-      set((state) => ({ cards: state.cards.filter((c) => c.id !== cardId) }));
-    } catch (err) {
-      console.error("Error deleting card:", err);
-    }
+  deleteCard: async (deckId, cardId) => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    await firestore()
+      .doc(`users/${user.uid}/customDecks/${deckId}/cards/${cardId}`)
+      .delete();
+    set((state) => ({ cards: state.cards.filter((c) => c.id !== cardId) }));
   },
 
   fetchAchievements: async () => {
@@ -294,9 +306,8 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
       if (snapshot.exists()) {
         const data = snapshot.data();
-        set((state) => ({
+        set({
           stats: {
-            ...state.stats,
             totalCardsStudied: data?.totalCardsStudied ?? 0,
             studyStreak: data?.studyStreak ?? 0,
             lastStudyDate: toMillis(data?.lastStudyDate) ?? null,
@@ -305,7 +316,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
               ? data.achievements
               : DEFAULT_ACHIEVEMENTS,
           },
-        }));
+        });
       } else {
         const defaultStats: UserStats = {
           totalCardsStudied: 0,
@@ -323,6 +334,9 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   },
 
   updateAchievements: async (newStats) => {
+    const user = auth().currentUser;
+    if (!user) return;
+
     set((state) => {
       const now = Date.now();
       const updatedStats = { ...state.stats, ...newStats };
@@ -346,36 +360,28 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       return { stats: { ...updatedStats, achievements } };
     });
 
-    try {
-      const user = auth().currentUser;
-      if (!user) return;
-      const statsRef = firestore()
-        .collection("users")
-        .doc(user.uid)
-        .collection("stats")
-        .doc("progress");
-      const currentStats = get().stats;
+    const userRef = firestore().collection("users").doc(user.uid);
+    const userDoc = await userRef.get();
 
-      await statsRef.update({
-        totalCardsStudied: currentStats.totalCardsStudied,
-        studyStreak: currentStats.studyStreak,
-        lastStudyDate: currentStats.lastStudyDate
-          ? new Date(currentStats.lastStudyDate)
-          : null,
-        achievements: currentStats.achievements,
-        cardsStudiedToday: currentStats.cardsStudiedToday,
-        updatedAt: firestore.FieldValue.serverTimestamp(),
+    if (!userDoc.exists) {
+      await userRef.set({
+        username: user.displayName || "Unnamed User",
+        email: user.email || "",
+        createdAt: firestore.FieldValue.serverTimestamp(),
       });
-    } catch (err) {
-      console.error("Error updating Firestore stats:", err);
+    } else {
+      await userRef.set(
+        {
+          username:
+            user.displayName || userDoc.data()?.username || "Unnamed User",
+          email: user.email || userDoc.data()?.email || "",
+        },
+        { merge: true }
+      );
     }
   },
 
-  studyCard: (
-    cardId: string,
-    isPerfectSession: boolean,
-    studyMinutes: number = 0
-  ) => {
+  studyCard: (cardId, isPerfectSession) => {
     const { stats } = get();
     const todayStr = new Date().toDateString();
     let cardsStudiedToday =
@@ -396,13 +402,12 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       lastDate && lastDate.toDateString() === yesterday.toDateString()
         ? stats.studyStreak + 1
         : 1;
-
-    const newTotalCards = stats.totalCardsStudied + 1;
+    const newTotal = stats.totalCardsStudied + 1;
 
     set({
       stats: {
         ...stats,
-        totalCardsStudied: newTotalCards,
+        totalCardsStudied: newTotal,
         studyStreak: newStreak,
         lastStudyDate: Date.now(),
         cardsStudiedToday,
@@ -410,7 +415,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     });
 
     get().updateAchievements({
-      totalCardsStudied: newTotalCards,
+      totalCardsStudied: newTotal,
       studyStreak: newStreak,
       perfectSession: isPerfectSession,
     });
@@ -418,42 +423,34 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 }));
 
 export const resetUserProgress = async () => {
-  try {
-    const user = auth().currentUser;
-    if (!user) throw new Error("No authenticated user");
+  const user = auth().currentUser;
+  if (!user) return;
 
-    const statsRef = firestore()
-      .collection("users")
-      .doc(user.uid)
-      .collection("stats")
-      .doc("progress");
-    const resetAchievements = DEFAULT_ACHIEVEMENTS.map((a) => ({
-      ...a,
-      progress: 0,
-      unlockedAt: null,
-    }));
+  const statsRef = firestore()
+    .collection("users")
+    .doc(user.uid)
+    .collection("stats")
+    .doc("progress");
+  const resetAchievements = DEFAULT_ACHIEVEMENTS.map((a) => ({
+    ...a,
+    progress: 0,
+    unlockedAt: null,
+  }));
 
-    await statsRef.set({
-      totalCardsStudied: 0,
-      studyStreak: 0,
-      lastStudyDate: null,
-      achievements: resetAchievements,
-      cardsStudiedToday: [],
-      updatedAt: firestore.FieldValue.serverTimestamp(),
-    });
+  await statsRef.set({
+    totalCardsStudied: 0,
+    studyStreak: 0,
+    lastStudyDate: null,
+    achievements: resetAchievements,
+    cardsStudiedToday: [],
+    updatedAt: firestore.FieldValue.serverTimestamp(),
+  });
 
-    // reset zustand
-    const { setStats } = useFlashcardStore.getState();
-    setStats({
-      totalCardsStudied: 0,
-      studyStreak: 0,
-      lastStudyDate: null,
-      achievements: resetAchievements,
-      cardsStudiedToday: [],
-    });
-
-    console.log("User progress reset successfully!");
-  } catch (err) {
-    console.error("Error resetting progress:", err);
-  }
+  useFlashcardStore.getState().setStats({
+    totalCardsStudied: 0,
+    studyStreak: 0,
+    lastStudyDate: null,
+    achievements: resetAchievements,
+    cardsStudiedToday: [],
+  });
 };

@@ -60,8 +60,15 @@ export default function SettingsScreen() {
   };
 
   const loadDecks = useCallback(async () => {
-    const decks = await getOfflineDecks();
-    setDownloaded(decks);
+    const userDecks = (await getOfflineDecks(true)).map((d: any) => ({
+      ...d,
+      isUserDeck: true,
+    }));
+    const systemDecks = (await getOfflineDecks(false)).map((d: any) => ({
+      ...d,
+      isUserDeck: false,
+    }));
+    setDownloaded([...systemDecks, ...userDecks]);
   }, []);
 
   useEffect(() => {
@@ -395,12 +402,8 @@ export default function SettingsScreen() {
 
                       <TouchableOpacity
                         onPress={() => {
-                          console.log(
-                            "Opening delete modal for:",
-                            item.deck.name
-                          );
+                          setDeckToDelete(item);
                           setShowDownloadsModal(false);
-                          setDeckToDelete(item.deck);
                           setShowDeleteModal(true);
                         }}
                       >
@@ -433,7 +436,7 @@ export default function SettingsScreen() {
               <Text style={styles.modalText}>
                 Are you sure you want to delete{" "}
                 <Text style={{ fontWeight: "600", color: "#1f2937" }}>
-                  {deckToDelete?.name}
+                  {deckToDelete?.deck?.name}
                 </Text>
                 ? This deck will no longer be available offline.
               </Text>
@@ -444,7 +447,7 @@ export default function SettingsScreen() {
                   onPress={() => {
                     setShowDeleteModal(false);
                     setDeckToDelete(null);
-                    setShowDownloadsModal(true); // reopen downloads modal after cancel
+                    setShowDownloadsModal(true);
                   }}
                 >
                   <Text style={styles.cancelButtonText}>Cancel</Text>
@@ -454,12 +457,17 @@ export default function SettingsScreen() {
                   style={[styles.modalButton, styles.destructiveButton]}
                   onPress={async () => {
                     if (deckToDelete) {
-                      await deleteOfflineDeck(deckToDelete.id);
-                      await loadDecks();
+                      await deleteOfflineDeck(
+                        deckToDelete.deck.id,
+                        deckToDelete.isUserDeck
+                      );
+                      setDownloaded((prev) =>
+                        prev.filter((d) => d.deck.id !== deckToDelete.deck.id)
+                      );
                     }
                     setShowDeleteModal(false);
                     setDeckToDelete(null);
-                    setShowDownloadsModal(true); // reopen downloads modal after deleting
+                    setShowDownloadsModal(true);
                   }}
                 >
                   <Text style={styles.destructiveButtonText}>Delete</Text>

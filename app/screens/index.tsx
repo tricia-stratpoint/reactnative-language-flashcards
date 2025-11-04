@@ -1,5 +1,4 @@
-import React, { useEffect, useState, useMemo } from "react";
-import { useFocusEffect } from "@react-navigation/native";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import {
   View,
   Text,
@@ -18,9 +17,9 @@ import { Colors } from "../constants/colors";
 import auth from "@react-native-firebase/auth";
 import firestore from "@react-native-firebase/firestore";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import NetInfo from "@react-native-community/netinfo";
 import ConfettiCannon from "react-native-confetti-cannon";
+import { getOfflineDecks } from "../utils/offlineStorage";
 
 export default function StudyScreen() {
   const insets = useSafeAreaInsets();
@@ -36,6 +35,7 @@ export default function StudyScreen() {
   const [totalCards, setTotalCards] = useState(0);
 
   const { cards, loadAllLanguages, decks: storeDecks } = useFlashcardStore();
+  const user = auth().currentUser;
 
   useEffect(() => {
     const init = async () => {
@@ -68,67 +68,86 @@ export default function StudyScreen() {
     }
   };
 
-  const fetchFlashcards = async (
-    deckId: string,
-    deckLang: Deck["language"]
-  ) => {
-    try {
-      const snapshot = await firestore()
-        .collection("flashcards")
-        .doc(deckLang)
-        .collection("decks")
-        .doc(deckId)
-        .collection("cards")
-        .orderBy("createdAt", "asc")
-        .get();
+  const fetchFlashcards = useCallback(
+    async (deck: Deck) => {
+      if (!user) return [];
 
-      const fetchedCards: Flashcard[] = snapshot.docs.map(
-        (doc) =>
-          ({ id: doc.id, language: deckLang, ...doc.data() } as Flashcard)
-      );
+      try {
+        let collectionRef;
 
-      setStudyCards(fetchedCards);
-      return fetchedCards;
-    } catch (error) {
-      console.error("Error fetching flashcards:", error);
-      setStudyCards([]);
-      return [];
-    }
-  };
+        if (deck.language === "spanish" || deck.language === "french") {
+          collectionRef = firestore()
+            .collection("flashcards")
+            .doc(deck.language)
+            .collection("decks")
+            .doc(deck.id)
+            .collection("cards");
+        } else {
+          collectionRef = firestore()
+            .collection("users")
+            .doc(user.uid)
+            .collection("customDecks")
+            .doc(deck.id)
+            .collection("cards");
+        }
 
+        const snapshot = await collectionRef.orderBy("createdAt", "asc").get();
+
+        const fetchedCards: Flashcard[] = snapshot.docs.map(
+          (doc) =>
+            ({
+              id: doc.id,
+              language: deck.language,
+              ...doc.data(),
+            } as Flashcard)
+        );
+
+        setStudyCards(fetchedCards);
+        return fetchedCards;
+      } catch (error) {
+        console.error("Error fetching flashcards:", error);
+        setStudyCards([]);
+        return [];
+      }
+    },
+    [user]
+  );
+
+  // get username
   useEffect(() => {
-    const user = auth().currentUser;
     if (user && user.displayName) setUsername(user.displayName);
-  }, []);
+  }, [user]);
 
+  // fetch flashcards when deck is selected
   useEffect(() => {
     if (selectedDeck) {
       const deck = decks.find((d) => d.id === selectedDeck);
       if (deck) {
-        fetchFlashcards(deck.id, deck.language).then((fetched) => {
+        fetchFlashcards(deck).then((fetched) => {
           setTotalCards(fetched.length);
         });
       }
       setCurrentCardIndex(0);
       setSessionStats({ studied: 0, correct: 0 });
     }
-  }, [selectedDeck, decks]);
+  }, [selectedDeck, decks, fetchFlashcards]);
 
-  useFocusEffect(
-    React.useCallback(() => {
-      const loadDownloads = async () => {
-        const stored = await AsyncStorage.getItem("downloaded_decks");
-        if (stored) {
-          const data = (JSON.parse(stored) as any[]).map((d: any) => d.deck.id);
-          setDownloadedDecks(data);
-        } else {
-          setDownloadedDecks([]);
-        }
-      };
+  // load downloaded decks per user
+  useEffect(() => {
+    const interval = setInterval(async () => {
+      if (!user) return;
 
-      loadDownloads();
-    }, [])
-  );
+      const userOffline = await getOfflineDecks(true);
+      const globalOffline = await getOfflineDecks(false);
+
+      setDownloadedDecks([
+        ...userOffline.map((d: { deck: Deck }) => String(d.deck.id)),
+        ...globalOffline.map((d: { deck: Deck }) => String(d.deck.id)),
+      ]);
+    }, 1000);
+
+    return () => clearInterval(interval);
+  }, [user]);
 
   useEffect(() => {
     const unsubscribe = NetInfo.addEventListener((state) => {
@@ -138,7 +157,8 @@ export default function StudyScreen() {
     return () => unsubscribe();
   }, []);
 
-  const handleCardSwipe = (difficulty: Flashcard["difficulty"]) => {
+  // handle card swipe
+  const handleCardSwipe = async (difficulty: Flashcard["difficulty"]) => {
     const currentCard = studyCards[currentCardIndex];
     if (!currentCard) return;
 
@@ -165,7 +185,25 @@ export default function StudyScreen() {
     const perfectSession =
       newStudied === totalCards && newCorrect === totalCards;
 
+    // update local store
     useFlashcardStore.getState().studyCard(currentCard.id, perfectSession);
+
+    // save progress per user in firestore
+    if (user) {
+      firestore()
+        .collection("users")
+        .doc(user.uid)
+        .collection("progress")
+        .doc(selectedDeck!)
+        .set(
+          {
+            studied: newStudied,
+            correct: newCorrect,
+            lastUpdated: firestore.FieldValue.serverTimestamp(),
+          },
+          { merge: true }
+        );
+    }
 
     setStudyCards(updatedCards);
     setCurrentCardIndex((prev) =>
@@ -388,7 +426,9 @@ export default function StudyScreen() {
                       </Text>
                     </View>
 
-                    {downloadedDecks.includes(deck.id) && (
+                    {downloadedDecks.some(
+                      (id) => String(id) === String(deck.id)
+                    ) && (
                       <View style={styles.downloadedTag}>
                         <Check size={16} color={Colors.white} />
                         <Text style={styles.downloadedText}>Downloaded</Text>

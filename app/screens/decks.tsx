@@ -18,7 +18,7 @@ import { Colors } from "../constants/colors";
 import { Flashcard, Deck } from "@/types/flashcard";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { getOfflineDecks } from "../utils/offlineStorage";
 
 const DECK_COLORS = [
   Colors.red,
@@ -47,11 +47,13 @@ export default function DecksScreen() {
 
   useEffect(() => {
     const fetchOffline = async () => {
-      const stored = await AsyncStorage.getItem("downloaded_decks");
-      if (stored) {
-        const data = JSON.parse(stored).map((d: any) => d.deck.id);
-        setOfflineDecks(data);
-      }
+      const userOffline = await getOfflineDecks(true);
+      const userDeckIds = userOffline.map((d: any) => d.deck.id);
+
+      const globalOffline = await getOfflineDecks(false);
+      const globalDeckIds = globalOffline.map((d: any) => d.deck.id);
+
+      setOfflineDecks([...userDeckIds, ...globalDeckIds]);
     };
     const unsubscribe = navigation.addListener("focus", fetchOffline);
     return unsubscribe;
@@ -71,16 +73,8 @@ export default function DecksScreen() {
 
   const handleCreateDeck = async () => {
     if (!deckName.trim()) return;
-
     const finalColor = selectedColor || Colors.blue;
-
-    await createDeck(
-      "custom",
-      deckName.trim(),
-      deckDescription.trim(),
-      finalColor
-    );
-
+    await createDeck(deckName.trim(), deckDescription.trim(), finalColor);
     setDeckName("");
     setDeckDescription("");
     setSelectedColor(DECK_COLORS[0]);
@@ -103,6 +97,15 @@ export default function DecksScreen() {
     }).length;
     return { total: deckCards.length, new: newCards, due: dueCards };
   };
+
+  // sort decks by language (default + custom)
+  const sortedDecks = [...decks].sort((a, b) => {
+    const langOrder = { spanish: 1, french: 2, custom: 3 };
+    return (
+      (langOrder[a.language || "custom"] ?? 3) -
+      (langOrder[b.language || "custom"] ?? 3)
+    );
+  });
 
   if (isLoading) {
     return (
@@ -134,7 +137,7 @@ export default function DecksScreen() {
         </View>
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-          {decks.map((deck: Deck & { language?: string }) => {
+          {sortedDecks.map((deck: Deck & { language?: string }) => {
             const stats = getDeckStats(deck.id);
             return (
               <View
@@ -186,7 +189,9 @@ export default function DecksScreen() {
                       })
                     }
                   >
-                    <Text style={styles.actionButtonText}>Manage Deck</Text>
+                    <Text style={styles.actionButtonText}>
+                      {deck.language === "custom" ? "Manage Deck" : "View Deck"}
+                    </Text>
                   </TouchableOpacity>
 
                   {offlineDecks.includes(deck.id) && (
