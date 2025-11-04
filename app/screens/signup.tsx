@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Colors } from "../constants/colors";
-import { getAuth } from "@/firebaseConfig";
+import { getAuth } from "@/firebase/firebaseConfig";
 
 export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [username, setUsername] = useState("");

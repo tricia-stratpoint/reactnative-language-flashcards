@@ -8,7 +8,7 @@ import {
   StyleSheet,
 } from "react-native";
 import { Colors } from "../constants/colors";
-import { getAuth } from "@/firebaseConfig";
+import { getAuth } from "@/firebase/firebaseConfig";
 
 export default function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
