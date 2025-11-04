@@ -188,7 +188,7 @@ export default function FlashcardComponent({
                 style={styles.cardGradient}
               >
                 <View style={styles.audioButtonContainer}>
-                  <TouchableOpacity onPress={speakText}>
+                  <TouchableOpacity onPress={speakText} testID="audio-button">
                     <Volume2 size={24} color={Colors.gray} />
                   </TouchableOpacity>
                 </View>
