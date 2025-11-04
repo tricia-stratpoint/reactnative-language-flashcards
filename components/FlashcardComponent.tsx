@@ -1,4 +1,4 @@
-import React, { useRef, useEffect } from "react";
+import React, { useRef, useEffect, useState } from "react";
 import {
   View,
   Text,
@@ -9,7 +9,7 @@ import {
   PanResponder,
   Platform,
 } from "react-native";
-import CardFlip from "react-native-card-flip";
+import FlipCard from "react-native-flip-card";
 import { LinearGradient } from "expo-linear-gradient";
 import { Flashcard } from "../types/flashcard";
 import { Volume2 } from "lucide-react-native";
@@ -21,15 +21,6 @@ const LANGUAGE_CODES: Record<Flashcard["language"], string> = {
   french: "fr-FR",
   custom: "en-US",
 };
-
-type CardFlipRef = { flip: () => void };
-const CardFlipTyped = CardFlip as unknown as React.ComponentType<{
-  style?: any;
-  flipDuration?: number;
-  ref?: React.Ref<CardFlipRef>;
-  children?: React.ReactNode;
-}>;
-
 interface FlashcardComponentProps {
   card: Flashcard;
   onSwipe: (difficulty: "good" | "again") => void;
@@ -43,10 +34,11 @@ export default function FlashcardComponent({
   const CARD_WIDTH = screenWidth - 40;
   const CARD_HEIGHT = screenHeight * 0.6;
 
-  const cardFlipRef = useRef<CardFlipRef>(null);
+  const flipCardRef = useRef<FlipCard>(null);
+  const [isFlipped, setIsFlipped] = useState(false);
 
-  const [panAnimation] = React.useState(new Animated.ValueXY());
-  const [scaleAnimation] = React.useState(new Animated.Value(1));
+  const [panAnimation] = useState(new Animated.ValueXY());
+  const [scaleAnimation] = useState(new Animated.Value(1));
 
   const overlayOpacity = panAnimation.x.interpolate({
     inputRange: [-screenWidth / 4, 0, screenWidth / 4],
@@ -151,7 +143,7 @@ export default function FlashcardComponent({
     }
   };
 
-  const handleFlip = () => cardFlipRef.current?.flip();
+  const handleFlip = () => setIsFlipped((prev) => !prev);
 
   const getDifficultyColor = (difficulty: "good" | "again") =>
     difficulty === "good" ? "#22c55e" : "#ef4444";
@@ -160,10 +152,15 @@ export default function FlashcardComponent({
     <View style={styles.container}>
       <Animated.View style={cardTransform} {...panResponder.panHandlers}>
         <View style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-          <CardFlipTyped
+          <FlipCard
             style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
-            ref={cardFlipRef}
-            flipDuration={600}
+            flip={isFlipped}
+            friction={10}
+            perspective={1000}
+            clickable={false}
+            ref={flipCardRef}
+            flipHorizontal={true}
+            flipVertical={false}
           >
             {/* front */}
             <TouchableOpacity
@@ -199,7 +196,7 @@ export default function FlashcardComponent({
                 <Text style={styles.swipeHint}>Swipe to rate difficulty</Text>
               </LinearGradient>
             </TouchableOpacity>
-          </CardFlipTyped>
+          </FlipCard>
 
           {/* overlay */}
           <Animated.View

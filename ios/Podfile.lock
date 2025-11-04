@@ -3303,18 +3303,18 @@ PODS:
     - ReactCommon/turbomodule/bridging
     - ReactCommon/turbomodule/core
     - Yoga
-  - RNFBApp (23.4.1):
+  - RNFBApp (23.5.0):
     - Firebase/CoreOnly (= 12.4.0)
     - React-Core
-  - RNFBAuth (23.4.1):
+  - RNFBAuth (23.5.0):
     - Firebase/Auth (= 12.4.0)
     - React-Core
     - RNFBApp
-  - RNFBFirestore (23.4.1):
+  - RNFBFirestore (23.5.0):
     - Firebase/Firestore (= 12.4.0)
     - React-Core
     - RNFBApp
-  - RNFBMessaging (23.4.1):
+  - RNFBMessaging (23.5.0):
     - Firebase/Messaging (= 12.4.0)
     - FirebaseCoreExtension
     - React-Core
@@ -4065,10 +4065,10 @@ SPEC CHECKSUMS:
   ReactCommon: 3dbed0a44e9e5d7b77b0f35983633aa5d33c9694
   RecaptchaInterop: 11e0b637842dfb48308d242afc3f448062325aba
   RNCAsyncStorage: faf86846c58994b6b8aab074a4914eb1796c2a9f
-  RNFBApp: ca4fab94da35f7fe7841566e17cd59cc0d07e4af
-  RNFBAuth: 6e704efa6f5915438b8af51bfb8cf3c0f2ea733d
-  RNFBFirestore: 519566716d40eeaef8b7ade548a1280ec9e68c16
-  RNFBMessaging: db5bfbbe40bc54214363090f9d566d4af00f0d41
+  RNFBApp: 89523a4912396a34fc60727c39835c0473dccddd
+  RNFBAuth: 8b2aff712aaafb0479092af3214963166d29678d
+  RNFBFirestore: 58fbdf41bbd21b9fee6b9d8f6b105f862f6631a8
+  RNFBMessaging: 67a2d79f246f82c147b02851e966b01163b71ab0
   RNGestureHandler: 85b0463dbfed54eaba4360e31c0aa1a0fe83a6a6
   RNNotifee: 4a6ee5c7deaf00e005050052d73ee6315dff7ec9
   RNReanimated: 7b926938d4190114e5848b5b022d83dbc2c0fe2c
