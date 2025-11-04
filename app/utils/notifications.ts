@@ -174,7 +174,16 @@ export async function scheduleStudyReminder(userId: string) {
 
     const lastStudyTimestamp = progressDoc.data()?.lastStudyDate;
     if (!lastStudyTimestamp) {
-      console.log(`No lastStudyDate found for ${username}, skipping reminder.`);
+      console.log(`No lastStudyDate found for ${username}, setting default.`);
+      await firestore()
+        .collection("users")
+        .doc(userId)
+        .collection("stats")
+        .doc("progress")
+        .set(
+          { lastStudyDate: firestore.Timestamp.fromDate(new Date()) },
+          { merge: true }
+        );
       return;
     }
 
