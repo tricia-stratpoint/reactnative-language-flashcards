@@ -62,7 +62,11 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
   const [isDownloaded, setIsDownloaded] = useState(false);
 
   useEffect(() => {
-    setDeckCards(cards.filter((c) => c.deckId === deckId));
+    const filtered = cards.filter((c) => c.deckId === deckId);
+    const sorted = filtered.sort(
+      (a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0)
+    );
+    setDeckCards(sorted);
   }, [cards, deckId]);
 
   useEffect(() => {
