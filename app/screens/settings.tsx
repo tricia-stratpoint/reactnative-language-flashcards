@@ -238,38 +238,20 @@ export default function SettingsScreen() {
                   style={[styles.guideDot, { backgroundColor: Colors.red }]}
                 />
                 <Text style={styles.guideText}>
-                  <Text style={styles.guideBold}>Again</Text> - You did not
-                  remember
-                </Text>
-              </View>
-              <View style={styles.guideItem}>
-                <View
-                  style={[styles.guideDot, { backgroundColor: Colors.orange }]}
-                />
-                <Text style={styles.guideText}>
-                  <Text style={styles.guideBold}>Hard</Text> - You barely
-                  remembered
+                  <Text style={styles.guideBold}>Again</Text> - Needs more
+                  practice
                 </Text>
               </View>
               <View style={styles.guideItem}>
                 <View
                   style={[
                     styles.guideDot,
-                    { backgroundColor: Colors.greenDark },
+                    { backgroundColor: Colors.tealDark },
                   ]}
                 />
                 <Text style={styles.guideText}>
                   <Text style={styles.guideBold}>Good</Text> - You remembered
                   correctly
-                </Text>
-              </View>
-              <View style={styles.guideItem}>
-                <View
-                  style={[styles.guideDot, { backgroundColor: Colors.blue }]}
-                />
-                <Text style={styles.guideText}>
-                  <Text style={styles.guideBold}>Easy</Text> - You remembered
-                  easily
                 </Text>
               </View>
             </View>
