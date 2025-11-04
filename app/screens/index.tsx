@@ -10,7 +10,7 @@ import {
   ActivityIndicator,
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
-import { Play, BarChart3, Check, Info } from "lucide-react-native";
+import { Play, ChartColumn, Check, Info } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Flashcard, Deck } from "@/types/flashcard";
 import FlashcardComponent from "@/components/FlashcardComponent";
@@ -380,7 +380,7 @@ export default function StudyScreen() {
                   <Text style={styles.deckDescription}>{deck.description}</Text>
                   <View style={styles.deckStats}>
                     <View style={styles.statItem}>
-                      <BarChart3 size={16} color={Colors.white} />
+                      <ChartColumn size={16} color={Colors.white} />
                       <Text style={styles.statText}>
                         {deckCardCounts[deck.id] || 0}{" "}
                         {deckCardCounts[deck.id] === 1 ? "card" : "cards"} to
