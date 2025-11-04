@@ -33,6 +33,7 @@ export default function StudyScreen() {
   const [downloadedDecks, setDownloadedDecks] = useState<string[]>([]);
   const [isConnected, setIsConnected] = useState(true);
   const [totalCards, setTotalCards] = useState(0);
+  const [showConfetti, setShowConfetti] = useState(false);
 
   const { cards, loadAllLanguages, decks: storeDecks } = useFlashcardStore();
   const user = auth().currentUser;
@@ -181,14 +182,18 @@ export default function StudyScreen() {
       studied: newStudied,
       correct: newCorrect,
     });
+    // trigger confetti if last card
+    if (updatedCards.length === 0 && totalCards > 0) {
+      setShowConfetti(true);
+    }
 
-    const perfectSession =
-      newStudied === totalCards && newCorrect === totalCards;
+    useFlashcardStore
+      .getState()
+      .studyCard(
+        currentCard.id,
+        newStudied === totalCards && newCorrect === totalCards
+      );
 
-    // update local store
-    useFlashcardStore.getState().studyCard(currentCard.id, perfectSession);
-
-    // save progress per user in firestore
     if (user) {
       firestore()
         .collection("users")
@@ -247,11 +252,9 @@ export default function StudyScreen() {
             style={styles.gradient}
           >
             <View style={styles.endContainer}>
-              <ConfettiCannon
-                key={Date.now()}
-                count={200}
-                origin={{ x: -10, y: 0 }}
-              />
+              {showConfetti && (
+                <ConfettiCannon count={200} origin={{ x: -10, y: 0 }} />
+              )}
               <Image
                 source={require("../../assets/images/pocketlingo-end-session.png")}
                 style={styles.endSessionImage}
