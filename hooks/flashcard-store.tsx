@@ -15,6 +15,7 @@ const DEFAULT_ACHIEVEMENTS = [
     icon: "🎯",
     progress: 0,
     target: 1,
+    unlockedAt: null,
   },
   {
     id: "study_streak_7",
@@ -23,6 +24,7 @@ const DEFAULT_ACHIEVEMENTS = [
     icon: "🔥",
     progress: 0,
     target: 7,
+    unlockedAt: null,
   },
   {
     id: "cards_100",
@@ -31,6 +33,7 @@ const DEFAULT_ACHIEVEMENTS = [
     icon: "💯",
     progress: 0,
     target: 100,
+    unlockedAt: null,
   },
   {
     id: "perfect_session",
@@ -39,6 +42,7 @@ const DEFAULT_ACHIEVEMENTS = [
     icon: "⭐",
     progress: 0,
     target: 1,
+    unlockedAt: null,
   },
 ];
 
