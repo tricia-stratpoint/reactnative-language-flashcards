@@ -333,52 +333,58 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     }
   },
 
-  updateAchievements: async (newStats) => {
+  updateAchievements: async (
+    newStats: Partial<UserStats> & { perfectSession?: boolean }
+  ) => {
     const user = auth().currentUser;
     if (!user) return;
 
-    set((state) => {
-      const now = Date.now();
-      const updatedStats = { ...state.stats, ...newStats };
-      const achievements = state.stats.achievements.map((a) => {
-        let progress = a.progress;
-        switch (a.id) {
-          case "first_card":
-          case "cards_100":
-            progress = Math.min(updatedStats.totalCardsStudied, a.target);
-            break;
-          case "study_streak_7":
-            progress = Math.min(updatedStats.studyStreak, a.target);
-            break;
-          case "perfect_session":
-            progress = newStats.perfectSession ? 1 : a.progress;
-            break;
-        }
-        const unlockedAt = a.unlockedAt || (progress >= a.target ? now : null);
-        return { ...a, progress, unlockedAt };
-      });
-      return { stats: { ...updatedStats, achievements } };
+    const now = Date.now();
+
+    // compute locally
+    const currentStats = get().stats;
+    const updatedStats: UserStats = { ...currentStats, ...newStats };
+
+    const achievements = currentStats.achievements.map((a) => {
+      let progress = a.progress;
+      switch (a.id) {
+        case "first_card":
+        case "cards_100":
+          progress = Math.min(updatedStats.totalCardsStudied, a.target);
+          break;
+        case "study_streak_7":
+          progress = Math.min(updatedStats.studyStreak, a.target);
+          break;
+        case "perfect_session":
+          progress = newStats.perfectSession ? 1 : a.progress;
+          break;
+      }
+      const unlockedAt = a.unlockedAt || (progress >= a.target ? now : null);
+      return { ...a, progress, unlockedAt };
     });
 
-    const userRef = firestore().collection("users").doc(user.uid);
-    const userDoc = await userRef.get();
+    const finalStats: UserStats = { ...updatedStats, achievements };
 
-    if (!userDoc.exists) {
-      await userRef.set({
-        username: user.displayName || "Unnamed User",
-        email: user.email || "",
-        createdAt: firestore.FieldValue.serverTimestamp(),
-      });
-    } else {
-      await userRef.set(
-        {
-          username:
-            user.displayName || userDoc.data()?.username || "Unnamed User",
-          email: user.email || userDoc.data()?.email || "",
-        },
-        { merge: true }
-      );
-    }
+    // update zustand
+    set({ stats: finalStats });
+
+    // update firestore
+    const statsRef = firestore()
+      .collection("users")
+      .doc(user.uid)
+      .collection("stats")
+      .doc("progress");
+
+    await statsRef.set(
+      {
+        totalCardsStudied: finalStats.totalCardsStudied,
+        studyStreak: finalStats.studyStreak,
+        lastStudyDate: firestore.FieldValue.serverTimestamp(),
+        achievements: finalStats.achievements,
+        cardsStudiedToday: finalStats.cardsStudiedToday,
+      },
+      { merge: true }
+    );
   },
 
   studyCard: (cardId, isPerfectSession) => {
