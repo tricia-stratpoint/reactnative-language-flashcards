@@ -20,23 +20,32 @@ export async function requestNotificationPermission() {
 
 // register for remote messages for fcm
 export async function registerDeviceForFCM() {
-  if (Platform.OS === "android") {
-    const enabled = await messaging().hasPermission();
-    if (!enabled) {
-      await messaging().requestPermission();
-    }
+  if (!messaging().isDeviceRegisteredForRemoteMessages) {
     await messaging().registerDeviceForRemoteMessages();
+  }
+
+  const authStatus = await messaging().requestPermission();
+  if (
+    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
+    authStatus === messaging.AuthorizationStatus.PROVISIONAL
+  ) {
+    console.log("FCM permission granted.");
   } else {
-    console.log("iOS device: auto-registration handled by Firebase");
+    console.log("FCM permission denied.");
   }
 }
 
 // get fcm token
 export async function getFcmToken() {
-  await registerDeviceForFCM();
-  const token = await messaging().getToken();
-  console.log("FCM Token:", token);
-  return token;
+  try {
+    await registerDeviceForFCM();
+    const token = await messaging().getToken();
+    console.log("FCM Token:", token);
+    return token;
+  } catch (err) {
+    console.error("Failed to get FCM token:", err);
+    return null;
+  }
 }
 
 // foreground message listener
@@ -130,23 +139,27 @@ export const handleManageNotifications = async () => {
   try {
     const settings = await notifee.getNotificationSettings();
 
-    const token = await getFcmToken();
-    console.log("FCM Token (Manage Notifications):", token);
-
     if (settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
       // if already granted, open system settings
+      await registerDeviceForFCM();
+      const token = await messaging().getToken();
+      console.log("FCM Token:", token);
+
+      // optionally open settings
       if (Platform.OS === "ios") {
         await Linking.openURL("app-settings:");
       } else {
         await Linking.openSettings();
       }
     } else {
-      // if not granted, request permission
-      const newSettings = await notifee.requestPermission();
-      if (newSettings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
-        console.log("Notifications permission granted.");
+      // if not granted, request permission. open system settings
+      console.log(
+        "Notifications permission denied. Redirecting to system settings..."
+      );
+      if (Platform.OS === "ios") {
+        await Linking.openURL("app-settings:");
       } else {
-        console.log("Notifications permission denied.");
+        await Linking.openSettings();
       }
     }
   } catch (error) {
