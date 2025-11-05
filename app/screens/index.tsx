@@ -306,6 +306,11 @@ export default function StudyScreen() {
             >
               <Text style={styles.backButtonText}>← Back</Text>
             </TouchableOpacity>
+
+            <Text style={styles.deckTitle}>
+              {decks.find((d) => d.id === selectedDeck)?.name || ""}
+            </Text>
+
             <Text style={styles.progressText}>
               {sessionStats.correct} / {totalCards}
             </Text>
@@ -682,5 +687,12 @@ const styles = StyleSheet.create({
   loadingGradient: {
     justifyContent: "center",
     alignItems: "center",
+  },
+  deckTitle: {
+    textAlign: "center",
+    color: Colors.white,
+    fontSize: 16,
+    fontWeight: "500",
+    marginLeft: -35,
   },
 });
