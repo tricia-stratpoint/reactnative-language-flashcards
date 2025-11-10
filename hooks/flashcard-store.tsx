@@ -104,62 +104,84 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       const user = auth().currentUser;
       if (!user) return;
 
-      const allDecks: Deck[] = [];
-      const allCards: Flashcard[] = [];
-
-      // load shared spanish & french decks
+      // realtime shared spanish & french decks
       for (const lang of SUPPORTED_LANGUAGES.filter((l) => l !== "custom")) {
-        const decksSnap = await firestore()
+        firestore()
           .collection(`flashcards/${lang}/decks`)
-          .get();
-        const sharedDecks = decksSnap.docs.map(
-          (d) => ({ id: d.id, language: lang, ...d.data() } as Deck)
-        );
-        allDecks.push(...sharedDecks);
+          .onSnapshot((decksSnap) => {
+            const sharedDecks = decksSnap.docs.map(
+              (d) => ({ id: d.id, language: lang, ...d.data() } as Deck)
+            );
 
-        for (const deck of sharedDecks) {
-          const cardsSnap = await firestore()
-            .collection(`flashcards/${lang}/decks/${deck.id}/cards`)
-            .get();
-          const deckCards = cardsSnap.docs.map((doc) => ({
-            id: doc.id,
-            deckId: deck.id,
-            language: lang,
-            ...doc.data(),
-            createdAt: toMillis(doc.data().createdAt),
-            lastReviewed: toMillis(doc.data().lastReviewed),
-            nextReview: toMillis(doc.data().nextReview),
-          })) as Flashcard[];
-          allCards.push(...deckCards);
-        }
+            sharedDecks.forEach((deck) => {
+              firestore()
+                .collection(`flashcards/${lang}/decks/${deck.id}/cards`)
+                .onSnapshot((cardsSnap) => {
+                  const deckCards = cardsSnap.docs.map((doc) => ({
+                    id: doc.id,
+                    deckId: deck.id,
+                    language: lang,
+                    ...doc.data(),
+                    createdAt: toMillis(doc.data().createdAt),
+                    lastReviewed: toMillis(doc.data().lastReviewed),
+                    nextReview: toMillis(doc.data().nextReview),
+                  })) as Flashcard[];
+
+                  set((state) => ({
+                    cards: [
+                      ...state.cards.filter((c) => c.deckId !== deck.id),
+                      ...deckCards,
+                    ],
+                  }));
+                });
+            });
+
+            set((state) => ({
+              decks: [
+                ...state.decks.filter((d) => d.language !== lang),
+                ...sharedDecks,
+              ],
+            }));
+          });
       }
 
-      // load user custom decks
-      const customDecksSnap = await firestore()
+      // realtime user custom decks
+      firestore()
         .collection(`users/${user.uid}/customDecks`)
-        .get();
+        .onSnapshot((customDecksSnap) => {
+          const userDecks = customDecksSnap.docs.map(
+            (d) => ({ id: d.id, language: "custom", ...d.data() } as Deck)
+          );
 
-      const userDecks = customDecksSnap.docs.map(
-        (d) => ({ id: d.id, language: "custom", ...d.data() } as Deck)
-      );
-      allDecks.push(...userDecks);
+          userDecks.forEach((deck) => {
+            firestore()
+              .collection(`users/${user.uid}/customDecks/${deck.id}/cards`)
+              .onSnapshot((cardsSnap) => {
+                const userCards = cardsSnap.docs.map((doc) => ({
+                  id: doc.id,
+                  deckId: deck.id,
+                  language: "custom",
+                  ...doc.data(),
+                  createdAt: toMillis(doc.data().createdAt),
+                  nextReview: toMillis(doc.data().nextReview),
+                })) as Flashcard[];
 
-      for (const deck of userDecks) {
-        const userCardsSnap = await firestore()
-          .collection(`users/${user.uid}/customDecks/${deck.id}/cards`)
-          .get();
-        const userCards = userCardsSnap.docs.map((doc) => ({
-          id: doc.id,
-          deckId: deck.id,
-          language: "custom",
-          ...doc.data(),
-          createdAt: toMillis(doc.data().createdAt),
-          nextReview: toMillis(doc.data().nextReview),
-        })) as Flashcard[];
-        allCards.push(...userCards);
-      }
+                set((state) => ({
+                  cards: [
+                    ...state.cards.filter((c) => c.deckId !== deck.id),
+                    ...userCards,
+                  ],
+                }));
+              });
+          });
 
-      set({ decks: allDecks, cards: allCards });
+          set((state) => ({
+            decks: [
+              ...state.decks.filter((d) => d.language !== "custom"),
+              ...userDecks,
+            ],
+          }));
+        });
     } catch (err) {
       console.error("Error loading decks:", err);
     } finally {
@@ -177,13 +199,8 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       color,
       createdAt: firestore.FieldValue.serverTimestamp(),
     };
-    const ref = await firestore()
-      .collection(`users/${user.uid}/customDecks`)
-      .add(newDeck);
 
-    set((state) => ({
-      decks: [...state.decks, { ...newDeck, id: ref.id, language: "custom" }],
-    }));
+    await firestore().collection(`users/${user.uid}/customDecks`).add(newDeck);
   },
 
   updateDeck: async (deckId, updatedData) => {
@@ -238,22 +255,9 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       isCustom: true,
     };
 
-    const ref = await firestore()
+    await firestore()
       .collection(`users/${user.uid}/customDecks/${deckId}/cards`)
       .add(newCard);
-
-    set((state) => ({
-      cards: [
-        ...state.cards,
-        {
-          ...newCard,
-          id: ref.id,
-          language: "custom",
-          createdAt: Date.now(),
-          nextReview: Date.now(),
-        },
-      ],
-    }));
   },
 
   updateCard: async (deckId, cardId, updatedData) => {
@@ -302,32 +306,33 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         .doc(user.uid)
         .collection("stats")
         .doc("progress");
-      const snapshot = await statsRef.get();
 
-      if (snapshot.exists()) {
+      statsRef.onSnapshot((snapshot) => {
         const data = snapshot.data();
-        set({
-          stats: {
-            totalCardsStudied: data?.totalCardsStudied ?? 0,
-            studyStreak: data?.studyStreak ?? 0,
-            lastStudyDate: toMillis(data?.lastStudyDate) ?? null,
-            cardsStudiedToday: data?.cardsStudiedToday ?? [],
-            achievements: data?.achievements?.length
-              ? data.achievements
-              : DEFAULT_ACHIEVEMENTS,
-          },
-        });
-      } else {
-        const defaultStats: UserStats = {
-          totalCardsStudied: 0,
-          studyStreak: 0,
-          lastStudyDate: null,
-          achievements: DEFAULT_ACHIEVEMENTS,
-          cardsStudiedToday: [],
-        };
-        await statsRef.set(defaultStats);
-        set({ stats: defaultStats });
-      }
+        if (data) {
+          set({
+            stats: {
+              totalCardsStudied: data.totalCardsStudied ?? 0,
+              studyStreak: data.studyStreak ?? 0,
+              lastStudyDate: toMillis(data.lastStudyDate) ?? null,
+              cardsStudiedToday: data.cardsStudiedToday ?? [],
+              achievements: data.achievements?.length
+                ? data.achievements
+                : DEFAULT_ACHIEVEMENTS,
+            },
+          });
+        } else {
+          const defaultStats: UserStats = {
+            totalCardsStudied: 0,
+            studyStreak: 0,
+            lastStudyDate: null,
+            achievements: DEFAULT_ACHIEVEMENTS,
+            cardsStudiedToday: [],
+          };
+          statsRef.set(defaultStats);
+          set({ stats: defaultStats });
+        }
+      });
     } catch (err) {
       console.error("Error fetching achievements:", err);
     }
