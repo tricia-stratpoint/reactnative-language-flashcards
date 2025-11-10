@@ -16,6 +16,7 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
   const authInstance = getAuth();
 
   const handleSignUp = async () => {
@@ -44,14 +45,28 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
       );
 
       if (userCredential.user) {
-        await userCredential.user.updateProfile({ displayName: username });
+        await userCredential.user.sendEmailVerification();
+        setVerificationSent(true);
+        await userCredential.user.reload();
+        console.log("Verification sent");
       }
-
-      console.log("User registered:", userCredential.user);
-      navigation.replace("Login");
     } catch (error: any) {
       console.log("Sign up error:", error);
       setError(error.message || "Failed to sign up. Please try again.");
+    }
+  };
+
+  const resendVerification = async () => {
+    const user = authInstance.currentUser;
+    if (user) {
+      try {
+        await user.sendEmailVerification();
+        setVerificationSent(true);
+        alert("Verification email resent!");
+      } catch (err) {
+        console.log("Resend email error:", err);
+        setError("Failed to resend verification email. Try again later.");
+      }
     }
   };
 
@@ -101,6 +116,21 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
       <TouchableOpacity style={styles.button} onPress={handleSignUp}>
         <Text style={styles.buttonText}>Sign Up</Text>
       </TouchableOpacity>
+
+      {verificationSent && (
+        <View style={{ marginBottom: 15 }}>
+          <Text style={{ color: Colors.gray, textAlign: "center" }}>
+            A verification email has been sent to {email}.
+          </Text>
+          <TouchableOpacity onPress={resendVerification}>
+            <Text
+              style={{ color: Colors.blue, textAlign: "center", marginTop: 5 }}
+            >
+              Didn&apos;t receive it? Resend
+            </Text>
+          </TouchableOpacity>
+        </View>
+      )}
 
       <View style={styles.linkContainer}>
         <Text style={styles.linkText}>Already have an account? </Text>

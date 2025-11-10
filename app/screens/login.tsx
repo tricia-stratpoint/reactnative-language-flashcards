@@ -15,6 +15,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [verificationSent, setVerificationSent] = useState(false);
   const authInstance = getAuth();
 
   const validateInputs = () => {
@@ -43,7 +44,15 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         email,
         password
       );
-      console.log("User logged in:", userCredential.user);
+      const user = userCredential.user;
+
+      if (!user.emailVerified) {
+        setError("Please verify your email before logging in.");
+        setVerificationSent(true);
+        return;
+      }
+
+      console.log("User logged in:", user);
       navigation.replace("MainTabs");
     } catch (error: any) {
       console.log("Login error:", error);
@@ -53,6 +62,19 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         setError("Incorrect password. Please try again.");
       } else {
         setError("Login failed. Please check your credentials.");
+      }
+    }
+  };
+
+  const resendVerification = async () => {
+    const user = authInstance.currentUser;
+    if (user) {
+      try {
+        await user.sendEmailVerification();
+        alert("Verification email resent!");
+      } catch (err) {
+        console.log("Resend email error:", err);
+        setError("Failed to resend verification email. Try again later.");
       }
     }
   };
@@ -71,6 +93,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         onChangeText={(text) => {
           setEmail(text);
           setError("");
+          setVerificationSent(false);
         }}
         keyboardType="email-address"
         autoCapitalize="none"
@@ -98,6 +121,20 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       </View>
 
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
+      {verificationSent && (
+        <TouchableOpacity onPress={resendVerification}>
+          <Text
+            style={{
+              color: Colors.blue,
+              textAlign: "center",
+              marginBottom: 10,
+            }}
+          >
+            Didn&apos;t receive verification email? Resend
+          </Text>
+        </TouchableOpacity>
+      )}
 
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
