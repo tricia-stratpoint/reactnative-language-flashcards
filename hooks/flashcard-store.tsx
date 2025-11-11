@@ -62,6 +62,68 @@ export const clearAllListeners = () => {
 };
 const addUnsubscriber = (fn: () => void) => unsubscribers.push(fn);
 
+let tokenRefreshInterval: ReturnType<typeof setInterval> | null = null;
+
+const createOrUpdateUserDocument = async () => {
+  const user = auth().currentUser;
+  if (!user) return;
+
+  try {
+    await firestore()
+      .collection("users")
+      .doc(user.uid)
+      .set(
+        {
+          username: user.displayName || "Unnamed User",
+          email: user.email || "",
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        },
+        { merge: true }
+      );
+    console.log("User document ensured in Firestore");
+  } catch (err) {
+    console.error("Error creating/updating user document:", err);
+  }
+};
+
+const refreshUserToken = async () => {
+  const user = auth().currentUser;
+  if (!user) return;
+  try {
+    const token = await user.getIdToken(true);
+    console.log("Firebase ID token refreshed:", token);
+  } catch (err) {
+    console.error("Error refreshing Firebase token:", err);
+  }
+};
+
+const startAutoTokenRefresh = () => {
+  if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+  tokenRefreshInterval = setInterval(() => refreshUserToken(), 55 * 60 * 1000);
+};
+
+const stopAutoTokenRefresh = () => {
+  if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+  tokenRefreshInterval = null;
+};
+
+const initializeUser = async () => {
+  const user = auth().currentUser;
+  if (!user) return;
+
+  await createOrUpdateUserDocument();
+  await refreshUserToken();
+  startAutoTokenRefresh();
+};
+
+auth().onIdTokenChanged((user) => {
+  if (user) {
+    initializeUser().catch(console.error);
+  } else {
+    stopAutoTokenRefresh();
+    clearAllListeners();
+  }
+});
 interface FlashcardState {
   decks: Deck[];
   cards: Flashcard[];
