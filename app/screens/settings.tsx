@@ -13,7 +13,7 @@ import { Trash2, Download, Bell, Info, LogOut } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
 import auth from "@react-native-firebase/auth";
-import { resetUserProgress } from "@/hooks/flashcard-store";
+import { resetUserProgress, clearAllListeners } from "@/hooks/flashcard-store";
 import { useNavigation } from "@react-navigation/native";
 import {
   showTestNotification,
@@ -35,6 +35,7 @@ export default function SettingsScreen() {
 
   const handleLogout = () => setShowLogoutModal(true);
   const confirmLogout = async () => {
+    clearAllListeners();
     setShowLogoutModal(false);
     try {
       await auth().signOut();
