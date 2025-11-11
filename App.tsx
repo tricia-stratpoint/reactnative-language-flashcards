@@ -1,13 +1,14 @@
-import React, { useEffect } from "react";
-import { StyleSheet } from "react-native";
+import React, { useEffect, useState } from "react";
+import { StyleSheet, View, ActivityIndicator } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
 import { NavigationContainer } from "@react-navigation/native";
-import auth, { FirebaseAuthTypes } from "@react-native-firebase/auth";
+import auth from "@react-native-firebase/auth";
 import AppNavigator from "./app/navigation/AppNavigator";
 import { Colors } from "./app/constants/colors";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
+import { getSecureItem } from "@/app/utils/secureStore";
 import {
   registerDeviceForFCM,
   getFcmToken,
@@ -21,7 +22,6 @@ const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
 
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-  console.log("Background message:", remoteMessage);
   await notifee.displayNotification({
     title: remoteMessage.notification?.title || "New Message",
     body: remoteMessage.notification?.body || "You have a new notification.",
@@ -30,21 +30,39 @@ messaging().setBackgroundMessageHandler(async (remoteMessage) => {
 });
 
 export default function App() {
+  const [initialRoute, setInitialRoute] = useState<"Login" | "MainTabs">(
+    "Login"
+  );
+
   useEffect(() => {
-    const { fetchAchievements } = useFlashcardStore.getState();
-    const authInstance = auth();
+    const checkLogin = async () => {
+      try {
+        const token = await getSecureItem("userToken");
 
-    const unsubscribe = authInstance.onAuthStateChanged(
-      async (currentUser: FirebaseAuthTypes.User | null) => {
-        console.log("Auth state changed:", currentUser?.email || "No user");
+        const currentUser = auth().currentUser;
 
-        if (currentUser) {
-          await fetchAchievements();
+        if (token && currentUser) {
+          setInitialRoute("MainTabs");
+        } else {
+          setInitialRoute("Login");
         }
-
+      } catch (err) {
+        console.log("Auto-login check error:", err);
+        setInitialRoute("Login");
+      } finally {
         SplashScreen.hideAsync();
       }
-    );
+    };
+
+    checkLogin();
+  }, []);
+
+  useEffect(() => {
+    const { fetchAchievements } = useFlashcardStore.getState();
+
+    const unsubscribe = auth().onAuthStateChanged(async (currentUser) => {
+      if (currentUser) await fetchAchievements();
+    });
 
     return unsubscribe;
   }, []);
@@ -63,11 +81,19 @@ export default function App() {
     initNotifications();
   }, []);
 
+  if (!initialRoute) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color={Colors.tealDark} />
+      </View>
+    );
+  }
+
   return (
     <QueryClientProvider client={queryClient}>
       <GestureHandlerRootView style={styles.container}>
         <NavigationContainer>
-          <AppNavigator />
+          <AppNavigator initialRouteName={initialRoute} />
         </NavigationContainer>
       </GestureHandlerRootView>
     </QueryClientProvider>

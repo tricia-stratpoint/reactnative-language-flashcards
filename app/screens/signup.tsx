@@ -9,6 +9,7 @@ import {
 } from "react-native";
 import { Colors } from "../constants/colors";
 import { getAuth } from "@/firebase/firebaseConfig";
+import { saveSecureItem } from "@/app/utils/secureStore";
 
 export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [username, setUsername] = useState("");
@@ -45,10 +46,20 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
       );
 
       if (userCredential.user) {
+        // send email verification
         await userCredential.user.sendEmailVerification();
         setVerificationSent(true);
         await userCredential.user.reload();
-        console.log("Verification sent");
+
+        // save token for auto-login (if verified)
+        if (userCredential.user.emailVerified) {
+          const token = await userCredential.user.getIdToken();
+          await saveSecureItem("userToken", token);
+          console.log("Token saved for auto-login");
+          navigation.replace("MainTabs");
+        } else {
+          console.log("Verification email sent; user must verify first.");
+        }
       }
     } catch (error: any) {
       console.log("Sign up error:", error);

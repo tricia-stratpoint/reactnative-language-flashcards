@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   Text,
@@ -8,7 +8,8 @@ import {
   StyleSheet,
 } from "react-native";
 import { Colors } from "../constants/colors";
-import { getAuth } from "@/firebase/firebaseConfig";
+import { getSecureItem, saveSecureItem } from "@/app/utils/secureStore";
+import auth from "@react-native-firebase/auth";
 
 export default function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
@@ -16,7 +17,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
   const [verificationSent, setVerificationSent] = useState(false);
-  const authInstance = getAuth();
+  const [loading, setLoading] = useState(false);
 
   const validateInputs = () => {
     if (!email.trim() || !password.trim()) {
@@ -39,8 +40,9 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
   const handleLogin = async () => {
     if (!validateInputs()) return;
 
+    setLoading(true);
     try {
-      const userCredential = await authInstance.signInWithEmailAndPassword(
+      const userCredential = await auth().signInWithEmailAndPassword(
         email,
         password
       );
@@ -49,25 +51,31 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       if (!user.emailVerified) {
         setError("Please verify your email before logging in.");
         setVerificationSent(true);
+        setLoading(false);
         return;
       }
 
+      const token = await user.getIdToken();
+      await saveSecureItem("userToken", token);
+
       console.log("User logged in:", user);
       navigation.replace("MainTabs");
-    } catch (error: any) {
-      console.log("Login error:", error);
-      if (error.code === "auth/user-not-found") {
+    } catch (err: any) {
+      console.log("Login error:", err);
+      if (err.code === "auth/user-not-found") {
         setError("No account found with this email.");
-      } else if (error.code === "auth/wrong-password") {
+      } else if (err.code === "auth/wrong-password") {
         setError("Incorrect password. Please try again.");
       } else {
         setError("Login failed. Please check your credentials.");
       }
+    } finally {
+      setLoading(false);
     }
   };
 
   const resendVerification = async () => {
-    const user = authInstance.currentUser;
+    const user = auth().currentUser;
     if (user) {
       try {
         await user.sendEmailVerification();
@@ -78,6 +86,19 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       }
     }
   };
+
+  useEffect(() => {
+    const checkToken = async () => {
+      const token = await getSecureItem("userToken");
+      if (token) {
+        const currentUser = auth().currentUser;
+        if (currentUser) {
+          navigation.replace("MainTabs");
+        }
+      }
+    };
+    checkToken();
+  }, [navigation]);
 
   return (
     <View style={styles.container}>
@@ -130,8 +151,14 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
         </TouchableOpacity>
       )}
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleLogin}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? "Logging in..." : "Login"}
+        </Text>
       </TouchableOpacity>
 
       <View style={styles.footer}>
@@ -221,6 +248,6 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 20,
     marginTop: -5,
-    fontWeight: 600,
+    fontWeight: "600",
   },
 });

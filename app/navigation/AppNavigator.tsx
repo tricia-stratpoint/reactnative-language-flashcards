@@ -85,9 +85,16 @@ function MainTabs() {
 }
 
 // Root Navigator
-export default function AppNavigator() {
+export default function AppNavigator({
+  initialRouteName,
+}: {
+  initialRouteName: "Login" | "MainTabs";
+}) {
   return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Navigator
+      initialRouteName={initialRouteName}
+      screenOptions={{ headerShown: false }}
+    >
       <Stack.Screen name="Login" component={LoginScreen} />
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />

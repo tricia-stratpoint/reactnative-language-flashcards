@@ -21,6 +21,7 @@ import {
   scheduleStudyReminder,
 } from "../utils/notifications";
 import { getOfflineDecks, deleteOfflineDeck } from "../utils/offlineStorage";
+import { deleteSecureItem } from "@/app/utils/secureStore";
 
 export default function SettingsScreen() {
   const insets = useSafeAreaInsets();
@@ -39,11 +40,12 @@ export default function SettingsScreen() {
     setShowLogoutModal(false);
     try {
       await auth().signOut();
+      await deleteSecureItem("userToken");
       navigation.reset({
         index: 0,
         routes: [{ name: "Login" as never }],
       });
-      console.log("User logged out");
+      console.log("User logged out and token cleared");
     } catch (error) {
       console.log("Logout error:", error);
     }
