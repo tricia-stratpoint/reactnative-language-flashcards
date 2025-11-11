@@ -118,14 +118,12 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
       </TouchableOpacity>
 
       {verificationSent && (
-        <View style={{ marginBottom: 15 }}>
-          <Text style={{ color: Colors.gray, textAlign: "center" }}>
+        <View style={styles.verification}>
+          <Text style={styles.verificationSent}>
             A verification email has been sent to {email}.
           </Text>
           <TouchableOpacity onPress={resendVerification}>
-            <Text
-              style={{ color: Colors.blue, textAlign: "center", marginTop: 5 }}
-            >
+            <Text style={styles.verificationResend}>
               Didn&apos;t receive it? Resend
             </Text>
           </TouchableOpacity>
@@ -213,5 +211,18 @@ const styles = StyleSheet.create({
   link: {
     color: Colors.tealDark,
     fontWeight: "600",
+  },
+  verification: {
+    marginBottom: 15,
+  },
+  verificationSent: {
+    color: Colors.gray,
+    textAlign: "center",
+  },
+  verificationResend: {
+    color: Colors.tealDark,
+    textAlign: "center",
+    marginTop: 5,
+    fontWeight: 600,
   },
 });

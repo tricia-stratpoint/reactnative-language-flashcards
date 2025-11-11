@@ -124,13 +124,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
 
       {verificationSent && (
         <TouchableOpacity onPress={resendVerification}>
-          <Text
-            style={{
-              color: Colors.blue,
-              textAlign: "center",
-              marginBottom: 10,
-            }}
-          >
+          <Text style={styles.verificationSent}>
             Didn&apos;t receive verification email? Resend
           </Text>
         </TouchableOpacity>
@@ -221,5 +215,12 @@ const styles = StyleSheet.create({
     textAlign: "center",
     marginBottom: 10,
     fontWeight: "600",
+  },
+  verificationSent: {
+    color: Colors.tealDark,
+    textAlign: "center",
+    marginBottom: 20,
+    marginTop: -5,
+    fontWeight: 600,
   },
 });
