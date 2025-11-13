@@ -17,25 +17,30 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
+  const [loading, setLoading] = useState(false);
   const [verificationSent, setVerificationSent] = useState(false);
   const authInstance = getAuth();
 
   const handleSignUp = async () => {
     setError("");
+    setLoading(true);
 
     if (!username.trim() || !email.trim() || !password.trim()) {
       setError("Please fill in all fields.");
+      setLoading(false);
       return;
     }
 
     const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
     if (!emailRegex.test(email)) {
       setError("Please enter a valid email address.");
+      setLoading(false);
       return;
     }
 
     if (password.length < 6) {
       setError("Password must be at least 6 characters long.");
+      setLoading(false);
       return;
     }
 
@@ -64,6 +69,8 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
     } catch (error: any) {
       console.log("Sign up error:", error);
       setError(error.message || "Failed to sign up. Please try again.");
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -124,8 +131,14 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
         </TouchableOpacity>
       </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleSignUp}>
-        <Text style={styles.buttonText}>Sign Up</Text>
+      <TouchableOpacity
+        style={styles.button}
+        onPress={handleSignUp}
+        disabled={loading}
+      >
+        <Text style={styles.buttonText}>
+          {loading ? "Signing up..." : "Sign Up"}
+        </Text>
       </TouchableOpacity>
 
       {verificationSent && (
