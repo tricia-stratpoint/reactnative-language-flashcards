@@ -411,7 +411,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       .collection("stats")
       .doc("progress");
 
-    statsRef.onSnapshot((snapshot) => {
+    const unsubscribe = statsRef.onSnapshot((snapshot) => {
       const data = snapshot?.data();
       if (data) {
         set({
@@ -426,24 +426,18 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
           },
         });
       } else {
-        statsRef.set({
+        const initialStats = {
           totalCardsStudied: 0,
           studyStreak: 0,
           lastStudyDate: null,
           cardsStudiedToday: [],
           achievements: DEFAULT_ACHIEVEMENTS,
-        });
-        set({
-          stats: {
-            totalCardsStudied: 0,
-            studyStreak: 0,
-            lastStudyDate: null,
-            cardsStudiedToday: [],
-            achievements: DEFAULT_ACHIEVEMENTS,
-          },
-        });
+        };
+        statsRef.set(initialStats);
+        set({ stats: initialStats });
       }
     });
+    addUnsubscriber(unsubscribe);
   },
 
   updateAchievements: async (newStats) => {
