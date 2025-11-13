@@ -51,6 +51,8 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
       );
 
       if (userCredential.user) {
+        await userCredential.user.updateProfile({ displayName: username });
+
         // send email verification
         await userCredential.user.sendEmailVerification();
         setVerificationSent(true);
@@ -60,14 +62,12 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
         if (userCredential.user.emailVerified) {
           const token = await userCredential.user.getIdToken();
           await saveSecureItem("userToken", token);
-          console.log("Token saved for auto-login");
           navigation.replace("MainTabs");
         } else {
           console.log("Verification email sent; user must verify first.");
         }
       }
     } catch (error: any) {
-      console.log("Sign up error:", error);
       setError(error.message || "Failed to sign up. Please try again.");
     } finally {
       setLoading(false);

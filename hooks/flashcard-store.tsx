@@ -70,18 +70,30 @@ const createOrUpdateUserDocument = async () => {
   if (!user) return;
 
   try {
-    await firestore()
-      .collection("users")
-      .doc(user.uid)
-      .set(
-        {
-          username: user.displayName || "Unnamed User",
-          email: user.email || "",
-          createdAt: firestore.FieldValue.serverTimestamp(),
-        },
-        { merge: true }
-      );
-    console.log("User document ensured in Firestore");
+    const userRef = firestore().collection("users").doc(user.uid);
+    const userDoc = await userRef.get();
+
+    let role: FlashcardState["role"] = "user";
+
+    if (user.email === SUPER_ADMIN_EMAIL) {
+      role = "super_admin";
+    }
+
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      role = data?.role || role;
+    }
+
+    await userRef.set(
+      {
+        username: user.displayName || "Unnamed User",
+        email: user.email || "",
+        role,
+        createdAt: firestore.FieldValue.serverTimestamp(),
+      },
+      { merge: true }
+    );
+    useFlashcardStore.getState().setUserRole(role);
   } catch (err) {
     console.error("Error creating/updating user document:", err);
   }
@@ -179,11 +191,6 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   fetchUserRole: async () => {
     const user = auth().currentUser;
     if (!user) return;
-
-    if (user.email === SUPER_ADMIN_EMAIL) {
-      set({ role: "super_admin" });
-      return;
-    }
 
     const userDoc = await firestore().collection("users").doc(user.uid).get();
     if (userDoc.exists()) {
