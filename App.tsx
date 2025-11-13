@@ -46,6 +46,11 @@ export default function App() {
         } else {
           setInitialRoute("Login");
         }
+
+        if (currentUser) {
+          const { fetchUserRole } = useFlashcardStore.getState();
+          await fetchUserRole();
+        }
       } catch (err) {
         console.log("Auto-login check error:", err);
         setInitialRoute("Login");

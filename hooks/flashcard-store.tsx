@@ -6,6 +6,7 @@ import firestore, {
 import auth from "@react-native-firebase/auth";
 
 const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
+const SUPER_ADMIN_EMAIL = "pocketlingo.admin@yopmail.com";
 
 const DEFAULT_ACHIEVEMENTS: UserStats["achievements"] = [
   {
@@ -129,6 +130,9 @@ interface FlashcardState {
   cards: Flashcard[];
   stats: UserStats;
   isLoading: boolean;
+  role: "user" | "moderator" | "super_admin";
+  setUserRole: (role: "user" | "moderator" | "super_admin") => void;
+  fetchUserRole: () => Promise<void>;
   setCards: (cards: Flashcard[]) => void;
   setDecks: (decks: Deck[]) => void;
   setStats: (stats: UserStats) => void;
@@ -168,6 +172,36 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   setCards: (cards) => set({ cards }),
   setDecks: (decks) => set({ decks }),
   setStats: (stats) => set({ stats }),
+
+  role: "user",
+  setUserRole: (role: "user" | "moderator" | "super_admin") => set({ role }),
+
+  fetchUserRole: async () => {
+    const user = auth().currentUser;
+    if (!user) return;
+
+    if (user.email === SUPER_ADMIN_EMAIL) {
+      set({ role: "super_admin" });
+      return;
+    }
+
+    const userDoc = await firestore().collection("users").doc(user.uid).get();
+    if (userDoc.exists()) {
+      const data = userDoc.data();
+      set({ role: data?.role || "user" });
+    } else {
+      await firestore()
+        .collection("users")
+        .doc(user.uid)
+        .set({
+          email: user.email,
+          username: user.displayName || "Unnamed User",
+          role: "user",
+          createdAt: firestore.FieldValue.serverTimestamp(),
+        });
+      set({ role: "user" });
+    }
+  },
 
   loadAllLanguages: async () => {
     set({ isLoading: true });

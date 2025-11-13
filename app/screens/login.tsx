@@ -10,6 +10,7 @@ import {
 import { Colors } from "../constants/colors";
 import { getSecureItem, saveSecureItem } from "@/app/utils/secureStore";
 import auth from "@react-native-firebase/auth";
+import { useFlashcardStore } from "@/hooks/flashcard-store";
 
 export default function LoginScreen({ navigation }: { navigation: any }) {
   const [email, setEmail] = useState("");
@@ -57,6 +58,9 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
 
       const token = await user.getIdToken();
       await saveSecureItem("userToken", token);
+
+      const { fetchUserRole } = useFlashcardStore.getState();
+      await fetchUserRole();
 
       console.log("User logged in:", user);
       navigation.replace("MainTabs");
