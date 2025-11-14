@@ -4,9 +4,9 @@ import firestore, {
   FirebaseFirestoreTypes,
 } from "@react-native-firebase/firestore";
 import auth from "@react-native-firebase/auth";
+import { UserRole, isSuperAdmin, isModerator } from "@/app/utils/roles";
 
 const SUPPORTED_LANGUAGES: Deck["language"][] = ["spanish", "french", "custom"];
-const SUPER_ADMIN_EMAIL = "pocketlingo.admin@yopmail.com";
 
 const DEFAULT_ACHIEVEMENTS: UserStats["achievements"] = [
   {
@@ -73,15 +73,14 @@ const createOrUpdateUserDocument = async () => {
     const userRef = firestore().collection("users").doc(user.uid);
     const userDoc = await userRef.get();
 
-    let role: FlashcardState["role"] = "user";
+    let role: UserRole = "user";
 
-    if (user.email === SUPER_ADMIN_EMAIL) {
+    if (isSuperAdmin(user.email ?? undefined)) {
       role = "super_admin";
-    }
-
-    if (userDoc.exists()) {
+    } else if (userDoc.exists()) {
       const data = userDoc.data();
-      role = data?.role || role;
+      if (isModerator(data?.role)) role = "moderator";
+      else if (isSuperAdmin(undefined, data?.role)) role = "super_admin";
     }
 
     await userRef.set(
@@ -103,8 +102,15 @@ const refreshUserToken = async () => {
   const user = auth().currentUser;
   if (!user) return;
   try {
-    const token = await user.getIdToken(true);
-    console.log("Firebase ID token refreshed:", token);
+    const idTokenResult = await user.getIdTokenResult();
+    const expiresIn = idTokenResult.expirationTime
+      ? new Date(idTokenResult.expirationTime).getTime() - Date.now()
+      : 0;
+
+    if (expiresIn < 5 * 60 * 1000) {
+      await user.getIdToken(true);
+      console.log("Firebase ID token refreshed");
+    }
   } catch (err) {
     console.error("Error refreshing Firebase token:", err);
   }
@@ -142,8 +148,8 @@ interface FlashcardState {
   cards: Flashcard[];
   stats: UserStats;
   isLoading: boolean;
-  role: "user" | "moderator" | "super_admin";
-  setUserRole: (role: "user" | "moderator" | "super_admin") => void;
+  role: UserRole;
+  setUserRole: (role: UserRole) => void;
   fetchUserRole: () => Promise<void>;
   setCards: (cards: Flashcard[]) => void;
   setDecks: (decks: Deck[]) => void;
@@ -193,9 +199,12 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     if (!user) return;
 
     const userDoc = await firestore().collection("users").doc(user.uid).get();
+    let role: UserRole = "user";
+
     if (userDoc.exists()) {
       const data = userDoc.data();
-      set({ role: data?.role || "user" });
+      if (isModerator(data?.role)) role = "moderator";
+      else if (isSuperAdmin(undefined, data?.role)) role = "super_admin";
     } else {
       await firestore()
         .collection("users")
@@ -206,8 +215,8 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
           role: "user",
           createdAt: firestore.FieldValue.serverTimestamp(),
         });
-      set({ role: "user" });
     }
+    set({ role });
   },
 
   loadAllLanguages: async () => {
