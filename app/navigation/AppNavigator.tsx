@@ -1,7 +1,13 @@
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { BookOpen, BarChart3, Trophy, Settings } from "lucide-react-native";
+import {
+  BookOpen,
+  BarChart3,
+  Trophy,
+  Settings,
+  UserRound,
+} from "lucide-react-native";
 
 import IndexScreen from "../screens/index";
 import DecksScreen from "../screens/decks";
@@ -10,6 +16,7 @@ import SettingsScreen from "../screens/settings";
 import LoginScreen from "../screens/login";
 import SignUpScreen from "../screens/signup";
 import DeckDetailsScreen from "../screens/decksdetails";
+import ProfileScreen from "../screens/profile";
 import { Colors } from "../constants/colors";
 
 export type RootStackParamList = {
@@ -59,6 +66,16 @@ function MainTabs() {
           title: "Decks",
           tabBarIcon: ({ color, size }) => (
             <BarChart3 color={color} size={size} />
+          ),
+        }}
+      />
+      <Tab.Screen
+        name="Profile"
+        component={ProfileScreen}
+        options={{
+          title: "Profile",
+          tabBarIcon: ({ color, size }) => (
+            <UserRound color={color} size={size} />
           ),
         }}
       />
