@@ -21,6 +21,11 @@ const { width: screenWidth } = Dimensions.get("window");
 
 const ARC_HEIGHT = 80;
 const ICON_SIZE = 120;
+const formatRole = (role: string) =>
+  role
+    .split("_")
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
 
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
@@ -100,7 +105,7 @@ export default function ProfileScreen() {
             <View style={styles.infoBlock}>
               <View style={styles.infoRow}>
                 <Mail size={20} color={Colors.gray} style={styles.icon} />
-                <Text style={styles.label}>Email</Text>
+                <Text style={styles.label}>Email Address</Text>
               </View>
               <View style={styles.dataContainer}>
                 <Text style={styles.data}>{userData.email}</Text>
@@ -113,7 +118,7 @@ export default function ProfileScreen() {
                 <Text style={styles.label}>Role</Text>
               </View>
               <View style={styles.dataContainer}>
-                <Text style={styles.data}>{userData.role}</Text>
+                <Text style={styles.data}>{formatRole(userData.role)}</Text>
               </View>
             </View>
 
