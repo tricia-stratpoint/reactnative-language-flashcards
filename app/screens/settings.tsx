@@ -10,7 +10,6 @@ import {
 } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import { Trash2, Download, Bell, Info, LogOut } from "lucide-react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { Colors } from "../constants/colors";
 import auth from "@react-native-firebase/auth";
 import { resetUserProgress, clearAllListeners } from "@/hooks/flashcard-store";
@@ -24,7 +23,6 @@ import { getOfflineDecks, deleteOfflineDeck } from "../utils/offlineStorage";
 import { deleteSecureItem } from "@/app/utils/secureStore";
 
 export default function SettingsScreen() {
-  const insets = useSafeAreaInsets();
   const navigation = useNavigation();
   const [showClearModal, setShowClearModal] = React.useState(false);
   const [showAboutModal, setShowAboutModal] = React.useState(false);
@@ -85,7 +83,7 @@ export default function SettingsScreen() {
   }, [showDownloadsModal, loadDecks]);
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <LinearGradient
         colors={[Colors.blue, Colors.greenMint, Colors.greenDark]}
         style={styles.gradient}
@@ -472,6 +470,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    paddingTop: 30,
   },
   header: {
     paddingHorizontal: 20,

@@ -121,7 +121,7 @@ export default function DecksScreen() {
   }
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <LinearGradient
         colors={[Colors.greenMint, Colors.mintAccent]}
         style={styles.gradient}
@@ -294,6 +294,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    paddingTop: 30,
   },
   header: {
     flexDirection: "row",

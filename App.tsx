@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { StyleSheet, View, ActivityIndicator } from "react-native";
+import { StyleSheet, View, ActivityIndicator, StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import * as SplashScreen from "expo-splash-screen";
@@ -95,13 +95,21 @@ export default function App() {
   }
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <GestureHandlerRootView style={styles.container}>
-        <NavigationContainer>
-          <AppNavigator initialRouteName={initialRoute} />
-        </NavigationContainer>
-      </GestureHandlerRootView>
-    </QueryClientProvider>
+    <>
+      <StatusBar
+        barStyle="dark-content"
+        translucent={true}
+        backgroundColor="transparent"
+      />
+
+      <QueryClientProvider client={queryClient}>
+        <GestureHandlerRootView style={styles.container}>
+          <NavigationContainer>
+            <AppNavigator initialRouteName={initialRoute} />
+          </NavigationContainer>
+        </GestureHandlerRootView>
+      </QueryClientProvider>
+    </>
   );
 }
 

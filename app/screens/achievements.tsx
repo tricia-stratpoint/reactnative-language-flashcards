@@ -48,7 +48,7 @@ export default function AchievementsScreen() {
   };
 
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <LinearGradient
         colors={[Colors.greenMint, Colors.blue]}
         style={styles.gradient}
@@ -180,6 +180,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    paddingTop: 30,
   },
   header: {
     paddingHorizontal: 20,

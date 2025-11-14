@@ -246,7 +246,7 @@ export default function StudyScreen() {
     // End-of-session screen
     if (studyCards.length === 0 && totalCards > 0) {
       return (
-        <View style={[styles.container, { paddingTop: insets.top }]}>
+        <View style={styles.container}>
           <LinearGradient
             colors={[Colors.blue, Colors.greenMint]}
             style={styles.gradient}
@@ -294,7 +294,7 @@ export default function StudyScreen() {
 
     // learning flashcards page
     return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
+      <View style={styles.container}>
         <LinearGradient
           colors={[Colors.blue, Colors.greenMint]}
           style={styles.gradient}
@@ -350,7 +350,7 @@ export default function StudyScreen() {
 
   // available deck selection page
   return (
-    <View style={[styles.container, { paddingTop: insets.top }]}>
+    <View style={styles.container}>
       <LinearGradient
         colors={[Colors.white, Colors.mintAccent]}
         style={styles.gradient}
@@ -459,6 +459,7 @@ const styles = StyleSheet.create({
   },
   gradient: {
     flex: 1,
+    paddingTop: 40,
   },
   content: {
     flex: 1,
