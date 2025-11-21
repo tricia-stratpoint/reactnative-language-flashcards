@@ -19,6 +19,7 @@ import DeckDetailsScreen from "../screens/decksdetails";
 import ProfileScreen from "../screens/profile";
 import SuperAdminPanel from "../screens/admin/superadmin";
 import ModeratorPanel from "../screens/admin/moderator";
+import ManageCommunityDecksScreen from "../screens/admin/communitydecksdetails";
 import { Colors } from "../constants/colors";
 
 export type RootStackParamList = {
@@ -28,6 +29,7 @@ export type RootStackParamList = {
   DeckDetails: { deckId: string; language: string };
   SuperAdminPanel: undefined;
   ModeratorPanel: undefined;
+  ManageCommunityDecks: { deckId: string };
 };
 
 const Tab = createBottomTabNavigator();
@@ -122,6 +124,10 @@ export default function AppNavigator({
       <Stack.Screen name="DeckDetails" component={DeckDetailsScreen} />
       <Stack.Screen name="SuperAdminPanel" component={SuperAdminPanel} />
       <Stack.Screen name="ModeratorPanel" component={ModeratorPanel} />
+      <Stack.Screen
+        name="ManageCommunityDecks"
+        component={ManageCommunityDecksScreen}
+      />
     </Stack.Navigator>
   );
 }

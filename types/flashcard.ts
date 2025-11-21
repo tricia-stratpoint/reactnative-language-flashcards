@@ -51,3 +51,14 @@ export interface UserStats {
   achievements: Achievement[];
   cardsStudiedToday: string[];
 }
+
+export type CommunityDeck = {
+  id: string;
+  title: string;
+  description: string;
+  createdBy: string;
+  createdAt: number | null;
+  status: string;
+  cards?: Flashcard[];
+  color?: string;
+};
