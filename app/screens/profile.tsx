@@ -147,7 +147,9 @@ export default function ProfileScreen() {
                 onPress={handleAdminPress}
               >
                 <Text style={styles.adminButtonText}>
-                  Go to Super Admin Panel
+                  {userData.role.toLowerCase() === "super_admin"
+                    ? "Go to Super Admin Panel"
+                    : "Go to Moderator Panel"}
                 </Text>
               </TouchableOpacity>
             )}
