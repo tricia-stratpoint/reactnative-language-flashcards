@@ -17,6 +17,8 @@ import LoginScreen from "../screens/login";
 import SignUpScreen from "../screens/signup";
 import DeckDetailsScreen from "../screens/decksdetails";
 import ProfileScreen from "../screens/profile";
+import SuperAdminPanel from "../screens/admin/superadmin";
+import ModeratorPanel from "../screens/admin/moderator";
 import { Colors } from "../constants/colors";
 
 export type RootStackParamList = {
@@ -24,6 +26,8 @@ export type RootStackParamList = {
   SignUp: undefined;
   MainTabs: undefined;
   DeckDetails: { deckId: string; language: string };
+  SuperAdminPanel: undefined;
+  ModeratorPanel: undefined;
 };
 
 const Tab = createBottomTabNavigator();
@@ -116,6 +120,8 @@ export default function AppNavigator({
       <Stack.Screen name="SignUp" component={SignUpScreen} />
       <Stack.Screen name="MainTabs" component={MainTabs} />
       <Stack.Screen name="DeckDetails" component={DeckDetailsScreen} />
+      <Stack.Screen name="SuperAdminPanel" component={SuperAdminPanel} />
+      <Stack.Screen name="ModeratorPanel" component={ModeratorPanel} />
     </Stack.Navigator>
   );
 }

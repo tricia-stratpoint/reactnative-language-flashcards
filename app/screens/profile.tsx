@@ -16,19 +16,30 @@ import auth from "@react-native-firebase/auth";
 import MaskedView from "@react-native-masked-view/masked-view";
 import { Mail, ShieldUser } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { useNavigation } from "@react-navigation/native";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
 const { width: screenWidth } = Dimensions.get("window");
 
 const ARC_HEIGHT = 80;
 const ICON_SIZE = 120;
+
 const formatRole = (role: string) =>
   role
     .split("_")
     .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
     .join(" ");
 
+type ProfileScreenNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "MainTabs"
+>;
+
 export default function ProfileScreen() {
+  const navigation = useNavigation<ProfileScreenNavigationProp>();
   const insets = useSafeAreaInsets();
+
   const [userData, setUserData] = useState({
     username: "",
     email: "",
@@ -55,7 +66,13 @@ export default function ProfileScreen() {
     loadUser();
   }, [fetchUserRole, role]);
 
-  const handleAdminPress = () => console.log("Admin button pressed!");
+  const handleAdminPress = () => {
+    if (role === "super_admin") {
+      navigation.navigate("SuperAdminPanel");
+    } else if (role === "moderator") {
+      navigation.navigate("ModeratorPanel");
+    }
+  };
 
   return (
     <LinearGradient
