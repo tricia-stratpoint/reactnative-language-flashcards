@@ -34,6 +34,17 @@ const ModeratorPanel = () => {
   const [showCreateModal, setShowCreateModal] = useState(false);
   const [deckTitle, setDeckTitle] = useState("");
   const [deckDescription, setDeckDescription] = useState("");
+  const [selectedColor, setSelectedColor] = useState<string | null>(null);
+
+  const DECK_COLORS = [
+    Colors.red,
+    Colors.orange,
+    Colors.greenMint,
+    Colors.greenDark,
+    Colors.blue,
+    Colors.purple,
+    Colors.pink,
+  ];
 
   useEffect(() => {
     const unsub = firestore()
@@ -195,6 +206,21 @@ const ModeratorPanel = () => {
               style={[styles.input, styles.textArea]}
             />
 
+            <Text style={styles.colorLabel}>Choose a color:</Text>
+            <View style={styles.colorPicker}>
+              {DECK_COLORS.map((color) => (
+                <TouchableOpacity
+                  key={color}
+                  style={[
+                    styles.colorOption,
+                    { backgroundColor: color },
+                    selectedColor === color && styles.selectedColor,
+                  ]}
+                  onPress={() => setSelectedColor(color)}
+                />
+              ))}
+            </View>
+
             <View style={styles.modalActions}>
               <TouchableOpacity
                 style={[styles.actionButton, styles.cancelButton]}
@@ -343,5 +369,28 @@ const styles = StyleSheet.create({
     textAlignVertical: "center",
     color: Colors.red,
     fontSize: 18,
+  },
+  colorLabel: {
+    fontSize: 16,
+    color: Colors.black,
+    marginBottom: 8,
+    fontWeight: "600",
+  },
+  colorPicker: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
+    marginBottom: 16,
+  },
+  colorOption: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 2,
+    borderColor: "#e5e7eb",
+  },
+  selectedColor: {
+    borderColor: Colors.blue,
+    borderWidth: 3,
   },
 });
