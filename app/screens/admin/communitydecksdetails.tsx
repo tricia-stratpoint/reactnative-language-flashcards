@@ -10,18 +10,19 @@ import {
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
-import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react-native";
 import { Colors } from "@/app/constants/colors";
-import type { RootStackParamList } from "@/app/navigation/AppNavigator";
 import { useCommunityStore } from "@/hooks/community-store";
 import type { Flashcard } from "@/types/flashcard";
+import { useNavigation } from "@react-navigation/native";
 
-type Props = NativeStackScreenProps<RootStackParamList, "ManageCommunityDecks">;
+type ManageCommunityDecksProps = {
+  deckId: string;
+};
 
-export default function ManageCommunityDecks({ route, navigation }: Props) {
-  const { deckId } = route.params;
-
+export default function ManageCommunityDecks({
+  deckId,
+}: ManageCommunityDecksProps) {
   const {
     loading,
     deck: selectedDeck,
@@ -46,6 +47,8 @@ export default function ManageCommunityDecks({ route, navigation }: Props) {
     useState<Flashcard | null>(null);
   const [showAddEditCardModal, setShowAddEditCardModal] = useState(false);
   const [showEditDeckModal, setShowEditDeckModal] = useState(false);
+
+  const navigation = useNavigation();
 
   useEffect(() => {
     if (selectedDeck) {

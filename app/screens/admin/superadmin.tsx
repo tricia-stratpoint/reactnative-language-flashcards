@@ -15,6 +15,7 @@ import { Colors } from "@/app/constants/colors";
 import { UserRole } from "@/app/utils/roles";
 import { ArrowLeft } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
+import ManageCommunityDecks from "./communitydecksdetails";
 
 interface User {
   uid: string;
@@ -32,6 +33,10 @@ export default function SuperAdminPanel() {
     user: User;
     action: "promote" | "demote";
   } | null>(null);
+  const [activeTab, setActiveTab] = useState<"moderators" | "decks">(
+    "moderators"
+  );
+  const [selectedDeckId] = useState<string | null>(null);
 
   const formatRole = (role: string) => {
     return role
@@ -98,46 +103,86 @@ export default function SuperAdminPanel() {
         <Text style={styles.headerTitle}>Super Admin Panel</Text>
       </View>
 
-      <FlatList
-        data={users}
-        keyExtractor={(item) => item.uid}
-        contentContainerStyle={{ padding: 16, paddingBottom: 40 }}
-        renderItem={({ item }) => (
-          <View style={styles.userCard}>
-            <Text style={styles.username}>{item.username}</Text>
-            <Text style={styles.email}>{item.email}</Text>
-            <Text style={styles.role}>Role: {formatRole(item.role)}</Text>
+      <View style={styles.tabsContainer}>
+        <TouchableOpacity
+          style={[
+            styles.tabButton,
+            activeTab === "moderators" && styles.activeTab,
+          ]}
+          onPress={() => setActiveTab("moderators")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "moderators" && styles.activeTabText,
+            ]}
+          >
+            Manage Moderators
+          </Text>
+        </TouchableOpacity>
 
-            {item.email !== "pocketlingo.admin@yopmail.com" && (
-              <TouchableOpacity
-                style={[
-                  styles.button,
-                  item.role === "moderator"
-                    ? styles.demoteButton
-                    : styles.promoteButton,
-                ]}
-                onPress={() =>
-                  setShowModal({
-                    user: item,
-                    action: item.role === "moderator" ? "demote" : "promote",
-                  })
-                }
-              >
-                <Text style={styles.buttonText}>
-                  {item.role === "moderator"
-                    ? "Demote to User"
-                    : "Promote to Moderator"}
-                </Text>
-              </TouchableOpacity>
+        <TouchableOpacity
+          style={[styles.tabButton, activeTab === "decks" && styles.activeTab]}
+          onPress={() => setActiveTab("decks")}
+        >
+          <Text
+            style={[
+              styles.tabText,
+              activeTab === "decks" && styles.activeTabText,
+            ]}
+          >
+            Manage Decks
+          </Text>
+        </TouchableOpacity>
+      </View>
+
+      <View style={styles.contentContainer}>
+        {activeTab === "moderators" ? (
+          <FlatList
+            data={users}
+            keyExtractor={(item) => item.uid}
+            contentContainerStyle={{ paddingBottom: 40 }}
+            renderItem={({ item }) => (
+              <View style={styles.userCard}>
+                <Text style={styles.username}>{item.username}</Text>
+                <Text style={styles.email}>{item.email}</Text>
+                <Text style={styles.role}>Role: {formatRole(item.role)}</Text>
+
+                {item.email !== "pocketlingo.admin@yopmail.com" && (
+                  <TouchableOpacity
+                    style={[
+                      styles.button,
+                      item.role === "moderator"
+                        ? styles.demoteButton
+                        : styles.promoteButton,
+                    ]}
+                    onPress={() =>
+                      setShowModal({
+                        user: item,
+                        action:
+                          item.role === "moderator" ? "demote" : "promote",
+                      })
+                    }
+                  >
+                    <Text style={styles.buttonText}>
+                      {item.role === "moderator"
+                        ? "Demote to User"
+                        : "Promote to Moderator"}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             )}
-          </View>
+            ListEmptyComponent={
+              <View style={styles.emptyState}>
+                <Text style={styles.emptyTitle}>No users found.</Text>
+              </View>
+            }
+          />
+        ) : (
+          selectedDeckId && <ManageCommunityDecks deckId={selectedDeckId} />
         )}
-        ListEmptyComponent={
-          <View style={styles.emptyState}>
-            <Text style={styles.emptyTitle}>No users found.</Text>
-          </View>
-        }
-      />
+      </View>
 
       <Modal visible={!!showModal} transparent animationType="fade">
         <View style={styles.modal}>
@@ -313,5 +358,37 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "500",
     color: Colors.white,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    justifyContent: "space-around",
+    marginHorizontal: 16,
+    marginVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
+  },
+  tabButton: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: "center",
+    borderBottomWidth: 2,
+    borderBottomColor: "transparent",
+  },
+  activeTab: {
+    borderBottomColor: Colors.blue,
+  },
+  tabText: {
+    fontSize: 16,
+    color: Colors.gray,
+    fontWeight: "500",
+  },
+  activeTabText: {
+    color: Colors.blue,
+    fontWeight: "700",
+  },
+  contentContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 8,
   },
 });
