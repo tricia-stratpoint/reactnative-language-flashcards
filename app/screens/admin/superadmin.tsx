@@ -33,6 +33,14 @@ export default function SuperAdminPanel() {
     action: "promote" | "demote";
   } | null>(null);
 
+  const formatRole = (role: string) => {
+    return role
+      .replace("_", " ")
+      .split(" ")
+      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .join(" ");
+  };
+
   useEffect(() => {
     if (role !== "super_admin") return;
 
@@ -98,7 +106,7 @@ export default function SuperAdminPanel() {
           <View style={styles.userCard}>
             <Text style={styles.username}>{item.username}</Text>
             <Text style={styles.email}>{item.email}</Text>
-            <Text style={styles.role}>Role: {item.role}</Text>
+            <Text style={styles.role}>Role: {formatRole(item.role)}</Text>
 
             {item.email !== "pocketlingo.admin@yopmail.com" && (
               <TouchableOpacity
