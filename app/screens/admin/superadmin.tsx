@@ -44,7 +44,7 @@ export default function SuperAdminPanel() {
             uid: doc.id,
             ...doc.data(),
           })) as User[];
-          setUsers(allUsers);
+          setUsers([...allUsers].reverse());
           setLoading(false);
         },
         (error) => {
