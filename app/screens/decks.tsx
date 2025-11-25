@@ -20,6 +20,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { getOfflineDecks } from "../utils/offlineStorage";
 import { useAllCommunityDecks } from "@/hooks/community-store";
+import firestore from "@react-native-firebase/firestore";
 
 const DECK_COLORS = [
   Colors.red,
@@ -47,6 +48,24 @@ export default function DecksScreen() {
   const [offlineDecks, setOfflineDecks] = useState<string[]>([]);
   const { communityDecks } = useAllCommunityDecks();
   const allDecks = communityDecks;
+  const [communityDeckCards, setCommunityDeckCards] = useState<
+    Record<string, Flashcard[]>
+  >({});
+
+  const getCommunityDeckStats = (deck: CommunityDeck) => {
+    const deckCards = communityDeckCards[deck.id] ?? [];
+    const total = deckCards.length;
+    const newCards = deckCards.filter((c) => c.repetitions === 0).length;
+    const dueCards = deckCards.filter((c) => {
+      let nextReviewTime: number;
+      if (typeof c.nextReview === "number") nextReviewTime = c.nextReview;
+      else if (c.nextReview?.toMillis) nextReviewTime = c.nextReview.toMillis();
+      else nextReviewTime = 0;
+      return nextReviewTime <= Date.now();
+    }).length;
+
+    return { total, new: newCards, due: dueCards };
+  };
 
   useEffect(() => {
     const fetchOffline = async () => {
@@ -61,6 +80,32 @@ export default function DecksScreen() {
     const unsubscribe = navigation.addListener("focus", fetchOffline);
     return unsubscribe;
   }, [navigation]);
+
+  useEffect(() => {
+    const unsubscribes: (() => void)[] = [];
+
+    communityDecks.forEach((deck) => {
+      const unsub = firestore()
+        .collection("communityDecks")
+        .doc(deck.id)
+        .collection("cards")
+        .onSnapshot((snapshot) => {
+          const cards: Flashcard[] = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            ...doc.data(),
+          })) as Flashcard[];
+
+          setCommunityDeckCards((prev) => ({
+            ...prev,
+            [deck.id]: cards,
+          }));
+        });
+
+      unsubscribes.push(unsub);
+    });
+
+    return () => unsubscribes.forEach((u) => u());
+  }, [communityDecks]);
 
   const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
@@ -234,7 +279,7 @@ export default function DecksScreen() {
             </View>
           ) : (
             allDecks.map((deck: CommunityDeck) => {
-              const stats = getDeckStats(deck.id, deck.cards);
+              const stats = getCommunityDeckStats(deck);
 
               return (
                 <View
