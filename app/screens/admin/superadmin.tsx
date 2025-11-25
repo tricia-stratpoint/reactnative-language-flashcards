@@ -39,6 +39,8 @@ export default function SuperAdminPanel() {
   );
   const [pendingDecks, setPendingDecks] = useState<CommunityDeck[]>([]);
   const [liveDecks, setLiveDecks] = useState<CommunityDeck[]>([]);
+  const [approveDeckModal, setApproveDeckModal] =
+    useState<CommunityDeck | null>(null);
 
   const formatRole = (role: string) =>
     role
@@ -125,12 +127,7 @@ export default function SuperAdminPanel() {
         {deck.status === "pending" && (
           <TouchableOpacity
             style={[styles.button, styles.promoteButton]}
-            onPress={() =>
-              firestore()
-                .collection("communityDecks")
-                .doc(deck.id)
-                .update({ status: "approved" })
-            }
+            onPress={() => setApproveDeckModal(deck)}
           >
             <Text style={styles.buttonText}>Approve Deck</Text>
           </TouchableOpacity>
@@ -290,6 +287,46 @@ export default function SuperAdminPanel() {
                     <Text style={styles.createButtonText}>
                       {showModal?.action === "promote" ? "Promote" : "Demote"}
                     </Text>
+                  </TouchableOpacity>
+                </View>
+              </View>
+            </View>
+          </Modal>
+
+          <Modal visible={!!approveDeckModal} transparent animationType="fade">
+            <View style={styles.modal}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>Approve Community Deck?</Text>
+                <Text style={styles.modalDescription}>
+                  This deck will be publicly visible to everyone. Are you sure
+                  you want to approve &quot;{approveDeckModal?.title}&quot;?
+                </Text>
+
+                <View style={styles.modalActions}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setApproveDeckModal(null)}
+                  >
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.createButton]}
+                    onPress={async () => {
+                      if (!approveDeckModal) return;
+                      try {
+                        await firestore()
+                          .collection("communityDecks")
+                          .doc(approveDeckModal.id)
+                          .update({ status: "approved" });
+                      } catch (err) {
+                        console.error(err);
+                      } finally {
+                        setApproveDeckModal(null);
+                      }
+                    }}
+                  >
+                    <Text style={styles.createButtonText}>Approve</Text>
                   </TouchableOpacity>
                 </View>
               </View>
