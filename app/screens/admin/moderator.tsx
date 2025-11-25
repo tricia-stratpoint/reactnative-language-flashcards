@@ -111,13 +111,16 @@ const ModeratorPanel = () => {
       const userDoc = await firestore().collection("users").doc(user.uid).get();
       const username = userDoc.exists() ? userDoc.data()?.username : "Unknown";
 
-      await firestore().collection("communityDecks").add({
-        title: deckTitle.trim(),
-        description: deckDescription.trim(),
-        status: "pending",
-        createdBy: username,
-        createdAt: Date.now(),
-      });
+      await firestore()
+        .collection("communityDecks")
+        .add({
+          title: deckTitle.trim(),
+          description: deckDescription.trim(),
+          status: "pending",
+          createdBy: username,
+          createdAt: Date.now(),
+          color: selectedColor || Colors.blue,
+        });
 
       setDeckTitle("");
       setDeckDescription("");

@@ -116,7 +116,11 @@ export function useCommunityStore(deckId?: string) {
   ) => {
     if (!deckRef) return;
     try {
-      await deckRef.update({ title, description, ...(color ? { color } : {}) });
+      await deckRef.update({
+        title,
+        description,
+        ...(color ? { color } : {}),
+      });
     } catch (e) {
       console.error("Failed to update deck:", e);
     }
