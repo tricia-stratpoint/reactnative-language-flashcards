@@ -278,84 +278,90 @@ export default function DecksScreen() {
               </Text>
             </View>
           ) : (
-            allDecks.map((deck: CommunityDeck) => {
-              const stats = getCommunityDeckStats(deck);
+            allDecks
+              .filter((deck: CommunityDeck) => deck.status === "approved")
+              .map((deck: CommunityDeck) => {
+                const stats = getCommunityDeckStats(deck);
 
-              return (
-                <View
-                  key={deck.id}
-                  style={[
-                    styles.deckCard,
-                    { borderLeftColor: deck.color || Colors.blue },
-                  ]}
-                >
-                  <View style={styles.deckHeader}>
-                    <View style={styles.deckInfo}>
-                      <Text style={styles.deckName}>{deck.title}</Text>
-                      <Text style={styles.deckDescription}>
-                        {deck.description}
-                      </Text>
-                    </View>
-                    <BookOpen size={24} color={deck.color || Colors.blue} />
-                  </View>
-
-                  <View style={styles.deckStats}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statNumber}>{stats.total}</Text>
-                      <Text style={styles.statLabel}>Total</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: Colors.blue }]}>
-                        {stats.new}
-                      </Text>
-                      <Text style={styles.statLabel}>New</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: Colors.red }]}>
-                        {stats.due}
-                      </Text>
-                      <Text style={styles.statLabel}>Due</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.deckActions}>
-                    <TouchableOpacity
-                      style={[
-                        styles.actionButton,
-                        { backgroundColor: deck.color || Colors.blue },
-                      ]}
-                      onPress={() =>
-                        navigation.navigate("DeckDetails", {
-                          deckId: deck.id,
-                          language: "community",
-                        })
-                      }
-                    >
-                      <Text style={styles.actionButtonText}>View Deck</Text>
-                    </TouchableOpacity>
-
-                    {offlineDecks.includes(deck.id) && (
-                      <View
-                        style={[
-                          styles.downloadedContainer,
-                          { borderColor: deck.color || Colors.blue },
-                        ]}
-                      >
-                        <Check size={18} color={deck.color || Colors.blue} />
-                        <Text
-                          style={[
-                            styles.downloadedText,
-                            { color: deck.color || Colors.blue },
-                          ]}
-                        >
-                          Downloaded
+                return (
+                  <View
+                    key={deck.id}
+                    style={[
+                      styles.deckCard,
+                      { borderLeftColor: deck.color || Colors.blue },
+                    ]}
+                  >
+                    <View style={styles.deckHeader}>
+                      <View style={styles.deckInfo}>
+                        <Text style={styles.deckName}>{deck.title}</Text>
+                        <Text style={styles.deckDescription}>
+                          {deck.description}
                         </Text>
                       </View>
-                    )}
+                      <BookOpen size={24} color={deck.color || Colors.blue} />
+                    </View>
+
+                    <View style={styles.deckStats}>
+                      <View style={styles.statItem}>
+                        <Text style={styles.statNumber}>{stats.total}</Text>
+                        <Text style={styles.statLabel}>Total</Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Text
+                          style={[styles.statNumber, { color: Colors.blue }]}
+                        >
+                          {stats.new}
+                        </Text>
+                        <Text style={styles.statLabel}>New</Text>
+                      </View>
+                      <View style={styles.statItem}>
+                        <Text
+                          style={[styles.statNumber, { color: Colors.red }]}
+                        >
+                          {stats.due}
+                        </Text>
+                        <Text style={styles.statLabel}>Due</Text>
+                      </View>
+                    </View>
+
+                    <View style={styles.deckActions}>
+                      <TouchableOpacity
+                        style={[
+                          styles.actionButton,
+                          { backgroundColor: deck.color || Colors.blue },
+                        ]}
+                        onPress={() =>
+                          navigation.navigate("DeckDetails", {
+                            deckId: deck.id,
+                            language: "community",
+                          })
+                        }
+                      >
+                        <Text style={styles.actionButtonText}>View Deck</Text>
+                      </TouchableOpacity>
+
+                      {offlineDecks.includes(deck.id) && (
+                        <View
+                          style={[
+                            styles.downloadedContainer,
+                            { borderColor: deck.color || Colors.blue },
+                          ]}
+                        >
+                          <Check size={18} color={deck.color || Colors.blue} />
+                          <Text
+                            style={[
+                              styles.downloadedText,
+                              { color: deck.color || Colors.blue },
+                            ]}
+                          >
+                            Downloaded
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
-                </View>
-              );
-            })
+                );
+              })
           )}
         </ScrollView>
 
