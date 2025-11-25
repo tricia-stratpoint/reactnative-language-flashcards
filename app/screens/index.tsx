@@ -46,9 +46,35 @@ export default function StudyScreen() {
     init();
   }, [loadAllLanguages]);
 
+  const fetchCommunityDecks = useCallback(async () => {
+    try {
+      const snapshot = await firestore()
+        .collection("communityDecks")
+        .where("status", "==", "approved")
+        .get();
+
+      const communityDecks: Deck[] = snapshot.docs.map((doc) => ({
+        id: doc.id,
+        language: doc.data().language ?? "english",
+        name: doc.data().title ?? "Untitled Deck",
+        description: doc.data().description ?? "",
+        color: doc.data().color ?? null,
+      }));
+
+      return communityDecks;
+    } catch (error) {
+      console.error("Error fetching community decks:", error);
+      return [];
+    }
+  }, []);
+
   useEffect(() => {
-    setDecks(storeDecks);
-  }, [storeDecks]);
+    const loadDecks = async () => {
+      const communityDecks = await fetchCommunityDecks();
+      setDecks([...storeDecks, ...communityDecks]);
+    };
+    loadDecks();
+  }, [storeDecks, fetchCommunityDecks]);
 
   const deckCardCounts = useMemo(() => {
     return decks.reduce((acc: Record<string, number>, deck: Deck) => {
