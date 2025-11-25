@@ -15,10 +15,11 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
-import { Flashcard, Deck } from "@/types/flashcard";
+import { Flashcard, Deck, CommunityDeck } from "@/types/flashcard";
 import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { getOfflineDecks } from "../utils/offlineStorage";
+import { useAllCommunityDecks } from "@/hooks/community-store";
 
 const DECK_COLORS = [
   Colors.red,
@@ -44,6 +45,8 @@ export default function DecksScreen() {
   const [deckDescription, setDeckDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
   const [offlineDecks, setOfflineDecks] = useState<string[]>([]);
+  const { communityDecks } = useAllCommunityDecks();
+  const allDecks = communityDecks;
 
   useEffect(() => {
     const fetchOffline = async () => {
@@ -217,14 +220,29 @@ export default function DecksScreen() {
             );
           })}
 
-          {decks.length === 0 && (
+          {allDecks.length === 0 ? (
             <View style={styles.emptyState}>
               <BookAlert size={64} color={Colors.tealDark} />
               <Text style={styles.emptyTitle}>No decks yet</Text>
               <Text style={styles.emptyDescription}>
-                Create your first deck to start learning
+                Create your own or browse community decks
               </Text>
             </View>
+          ) : (
+            allDecks.map((deck: CommunityDeck) => (
+              <View
+                key={deck.id}
+                style={[
+                  styles.deckCard,
+                  { borderLeftColor: deck.color || Colors.blue },
+                ]}
+              >
+                <View style={styles.deckHeader}>
+                  <Text style={styles.deckName}>{deck.title}</Text>
+                  <Text style={styles.deckDescription}>{deck.description}</Text>
+                </View>
+              </View>
+            ))
           )}
         </ScrollView>
 

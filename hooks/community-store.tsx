@@ -192,3 +192,38 @@ export function useCommunityStore(deckId?: string) {
     deleteCard,
   };
 }
+
+export function useAllCommunityDecks() {
+  const [communityDecks, setCommunityDecks] = useState<CommunityDeck[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const unsubscribe = firestore()
+      .collection("communityDecks")
+      .where("status", "==", "approved")
+      .orderBy("createdAt", "desc")
+      .onSnapshot(
+        (snapshot) => {
+          const decks: CommunityDeck[] = snapshot.docs.map((doc) => ({
+            id: doc.id,
+            title: doc.data().title,
+            description: doc.data().description,
+            color: doc.data().color || "#fff",
+            createdBy: doc.data().createdBy,
+            status: doc.data().status,
+            createdAt: doc.data().createdAt?.toMillis?.() || Date.now(),
+          }));
+          setCommunityDecks(decks);
+          setLoading(false);
+        },
+        (error) => {
+          console.error("Error fetching community decks:", error);
+          setLoading(false);
+        }
+      );
+
+    return unsubscribe;
+  }, []);
+
+  return { communityDecks, loading };
+}
