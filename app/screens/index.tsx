@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useMemo, useCallback } from "react";
+import React, { useEffect, useState, useMemo } from "react";
 import {
   View,
   Text,
@@ -34,6 +34,9 @@ export default function StudyScreen() {
   const [isConnected, setIsConnected] = useState(true);
   const [totalCards, setTotalCards] = useState(0);
   const [showConfetti, setShowConfetti] = useState(false);
+  const [communityCardCounts, setCommunityCardCounts] = useState<
+    Record<string, number>
+  >({});
 
   const { cards, loadAllLanguages, decks: storeDecks } = useFlashcardStore();
   const user = auth().currentUser;
@@ -63,22 +66,34 @@ export default function StudyScreen() {
           name: doc.data().title ?? "Untitled Deck",
           description: doc.data().description ?? "",
           color: doc.data().color ?? null,
+          isCommunity: true,
         }));
 
         setDecks((prev) => {
-          const local = storeDecks;
-          return [...local, ...updatedCommunityDecks];
+          const all = [...storeDecks];
+
+          updatedCommunityDecks.forEach((d) => {
+            if (!all.some((x) => x.id === d.id)) {
+              all.push(d);
+            }
+          });
+
+          return all;
         });
       });
     return () => unsubscribe();
   }, [storeDecks]);
 
   const deckCardCounts = useMemo(() => {
-    return decks.reduce((acc: Record<string, number>, deck: Deck) => {
-      acc[deck.id] = cards.filter((c) => c.deckId === deck.id).length;
+    return decks.reduce<Record<string, number>>((acc, deck) => {
+      if (deck.isCommunity) {
+        acc[deck.id] = communityCardCounts[deck.id] ?? 0;
+      } else {
+        acc[deck.id] = cards.filter((c) => c.deckId === deck.id).length;
+      }
       return acc;
     }, {});
-  }, [decks, cards]);
+  }, [decks, cards, communityCardCounts]);
 
   const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
@@ -92,52 +107,6 @@ export default function StudyScreen() {
     }
   };
 
-  const fetchFlashcards = useCallback(
-    async (deck: Deck) => {
-      if (!user) return [];
-
-      try {
-        let collectionRef;
-
-        if (deck.language === "spanish" || deck.language === "french") {
-          collectionRef = firestore()
-            .collection("flashcards")
-            .doc(deck.language)
-            .collection("decks")
-            .doc(deck.id)
-            .collection("cards");
-        } else {
-          collectionRef = firestore()
-            .collection("users")
-            .doc(user.uid)
-            .collection("customDecks")
-            .doc(deck.id)
-            .collection("cards");
-        }
-
-        const snapshot = await collectionRef.orderBy("createdAt", "asc").get();
-
-        const fetchedCards: Flashcard[] = snapshot.docs.map(
-          (doc) =>
-            ({
-              id: doc.id,
-              language: deck.language,
-              ...doc.data(),
-            } as Flashcard)
-        );
-
-        setStudyCards(fetchedCards);
-        setTotalCards(fetchedCards.length);
-        return fetchedCards;
-      } catch (error) {
-        console.error("Error fetching flashcards:", error);
-        setStudyCards([]);
-        return [];
-      }
-    },
-    [user]
-  );
-
   // get username
   useEffect(() => {
     if (user?.displayName) setUsername(user.displayName);
@@ -145,15 +114,49 @@ export default function StudyScreen() {
 
   // fetch flashcards when deck is selected
   useEffect(() => {
-    if (selectedDeck) {
-      const deck = decks.find((d) => d.id === selectedDeck);
-      if (deck) {
-        fetchFlashcards(deck);
-      }
-      setCurrentCardIndex(0);
-      setSessionStats({ studied: 0, correct: 0 });
+    if (!selectedDeck) return;
+    const deck = decks.find((d) => d.id === selectedDeck);
+    if (!deck || !user) return;
+
+    let collectionRef;
+
+    if (deck.isCommunity) {
+      collectionRef = firestore()
+        .collection("communityDecks")
+        .doc(deck.id)
+        .collection("cards");
+    } else if (deck.language === "spanish" || deck.language === "french") {
+      collectionRef = firestore()
+        .collection("flashcards")
+        .doc(deck.language)
+        .collection("decks")
+        .doc(deck.id)
+        .collection("cards");
+    } else {
+      collectionRef = firestore()
+        .collection("users")
+        .doc(user.uid)
+        .collection("customDecks")
+        .doc(deck.id)
+        .collection("cards");
     }
-  }, [selectedDeck, decks, fetchFlashcards]);
+
+    const unsubscribe = collectionRef
+      .orderBy("createdAt")
+      .onSnapshot((snapshot) => {
+        const fetchedCards = snapshot.docs.map((doc) => ({
+          id: doc.id,
+          language: deck.language,
+          ...doc.data(),
+        })) as Flashcard[];
+
+        setStudyCards(fetchedCards);
+        setTotalCards(fetchedCards.length);
+        setCurrentCardIndex(0);
+      });
+
+    return () => unsubscribe();
+  }, [selectedDeck, decks, user]);
 
   // load downloaded decks per user
   useEffect(() => {
@@ -179,6 +182,39 @@ export default function StudyScreen() {
 
     return () => unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const communityUnsub = firestore()
+      .collection("communityDecks")
+      .where("status", "==", "approved")
+      .onSnapshot(async (querySnapshot) => {
+        const decks = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          language: doc.data().language ?? "english",
+          name: doc.data().title ?? "Untitled Deck",
+          description: doc.data().description ?? "",
+          color: doc.data().color ?? null,
+          isCommunity: true,
+        }));
+
+        setDecks([...storeDecks, ...decks]);
+
+        decks.forEach((deck) => {
+          firestore()
+            .collection("communityDecks")
+            .doc(deck.id)
+            .collection("cards")
+            .onSnapshot((cardSnap) => {
+              setCommunityCardCounts((prev) => ({
+                ...prev,
+                [deck.id]: cardSnap.size,
+              }));
+            });
+        });
+      });
+
+    return () => communityUnsub();
+  }, [storeDecks]);
 
   // handle card swipe
   const handleCardSwipe = async (difficulty: Flashcard["difficulty"]) => {

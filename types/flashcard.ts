@@ -23,6 +23,7 @@ export interface Deck {
   description: string;
   color: string;
   language: "spanish" | "french" | "custom";
+  isCommunity?: boolean;
 }
 
 export interface StudySession {
