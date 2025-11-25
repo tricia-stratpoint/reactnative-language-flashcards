@@ -8,6 +8,7 @@ import {
   SafeAreaView,
   ActivityIndicator,
   Modal,
+  ScrollView,
 } from "react-native";
 import firestore from "@react-native-firebase/firestore";
 import { useFlashcardStore } from "@/hooks/flashcard-store";
@@ -15,7 +16,7 @@ import { Colors } from "@/app/constants/colors";
 import { UserRole } from "@/app/utils/roles";
 import { ArrowLeft } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
-import ManageCommunityDecks from "./communitydecksdetails";
+import type { CommunityDeck } from "@/types/flashcard";
 
 interface User {
   uid: string;
@@ -36,20 +37,33 @@ export default function SuperAdminPanel() {
   const [activeTab, setActiveTab] = useState<"moderators" | "decks">(
     "moderators"
   );
-  const [selectedDeckId] = useState<string | null>(null);
+  const [pendingDecks, setPendingDecks] = useState<CommunityDeck[]>([]);
+  const [liveDecks, setLiveDecks] = useState<CommunityDeck[]>([]);
 
-  const formatRole = (role: string) => {
-    return role
-      .replace("_", " ")
+  const formatRole = (role: string) =>
+    role
+      .replace(/_/g, " ")
       .split(" ")
-      .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
       .join(" ");
+
+  const toggleModerator = async (user: User) => {
+    const newRole = user.role === "moderator" ? "user" : "moderator";
+    try {
+      await firestore()
+        .collection("users")
+        .doc(user.uid)
+        .update({ role: newRole });
+      setShowModal(null);
+    } catch (err) {
+      console.error(err);
+    }
   };
 
   useEffect(() => {
     if (role !== "super_admin") return;
 
-    const unsubscribe = firestore()
+    const unsubscribeUsers = firestore()
       .collection("users")
       .onSnapshot(
         (snapshot) => {
@@ -67,156 +81,222 @@ export default function SuperAdminPanel() {
         }
       );
 
-    return () => unsubscribe();
+    return () => unsubscribeUsers();
   }, [role]);
 
-  const toggleModerator = async (user: User) => {
-    const newRole = user.role === "moderator" ? "user" : "moderator";
-    await firestore()
-      .collection("users")
-      .doc(user.uid)
-      .update({ role: newRole });
-    setShowModal(null);
-  };
+  useEffect(() => {
+    const unsubscribeDecks = firestore()
+      .collection("communityDecks")
+      .orderBy("createdAt", "desc")
+      .onSnapshot(
+        (snapshot) => {
+          const decks = snapshot.docs.map((doc) => {
+            const data = doc.data();
+            return {
+              id: doc.id,
+              title: data.title || "",
+              description: data.description || "",
+              createdBy: data.createdBy || "",
+              status: data.status || "pending",
+              createdAt: data.createdAt || null,
+            } as CommunityDeck;
+          });
 
-  if (role !== "super_admin")
-    return <Text style={styles.accessDenied}>Access Denied</Text>;
-  if (loading)
+          setPendingDecks(decks.filter((d) => d.status === "pending"));
+          setLiveDecks(decks.filter((d) => d.status === "approved"));
+        },
+        (error) => {
+          console.error("Error fetching decks:", error);
+          setPendingDecks([]);
+          setLiveDecks([]);
+        }
+      );
+
+    return () => unsubscribeDecks();
+  }, []);
+
+  const renderDeckCard = (deck: CommunityDeck) => {
     return (
-      <ActivityIndicator
-        size="large"
-        color={Colors.blue}
-        style={styles.loader}
-      />
+      <View key={deck.id} style={styles.deckCard}>
+        <Text style={styles.deckTitle}>{deck.title}</Text>
+        <Text style={styles.deckDescription}>{deck.description}</Text>
+        <Text style={styles.deckCreatedBy}>Created by: {deck.createdBy}</Text>
+
+        {deck.status === "pending" && (
+          <TouchableOpacity
+            style={[styles.button, styles.promoteButton]}
+            onPress={() =>
+              firestore()
+                .collection("communityDecks")
+                .doc(deck.id)
+                .update({ status: "approved" })
+            }
+          >
+            <Text style={styles.buttonText}>Approve Deck</Text>
+          </TouchableOpacity>
+        )}
+      </View>
     );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
-      <View style={styles.header}>
-        <TouchableOpacity
-          style={styles.backButton}
-          onPress={() => navigation.goBack()}
-        >
-          <ArrowLeft color={Colors.black} size={24} />
-        </TouchableOpacity>
+      {role !== "super_admin" ? (
+        <Text style={styles.accessDenied}>Access Denied</Text>
+      ) : loading ? (
+        <ActivityIndicator
+          size="large"
+          color={Colors.blue}
+          style={styles.loader}
+        />
+      ) : (
+        <>
+          <View style={styles.header}>
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => navigation.goBack()}
+            >
+              <ArrowLeft color={Colors.black} size={24} />
+            </TouchableOpacity>
 
-        <Text style={styles.headerTitle}>Super Admin Panel</Text>
-      </View>
+            <Text style={styles.headerTitle}>Super Admin Panel</Text>
+          </View>
 
-      <View style={styles.tabsContainer}>
-        <TouchableOpacity
-          style={[
-            styles.tabButton,
-            activeTab === "moderators" && styles.activeTab,
-          ]}
-          onPress={() => setActiveTab("moderators")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "moderators" && styles.activeTabText,
-            ]}
-          >
-            Manage Moderators
-          </Text>
-        </TouchableOpacity>
+          <View style={styles.tabsContainer}>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === "moderators" && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab("moderators")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "moderators" && styles.activeTabText,
+                ]}
+              >
+                Manage Moderators
+              </Text>
+            </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.tabButton, activeTab === "decks" && styles.activeTab]}
-          onPress={() => setActiveTab("decks")}
-        >
-          <Text
-            style={[
-              styles.tabText,
-              activeTab === "decks" && styles.activeTabText,
-            ]}
-          >
-            Manage Decks
-          </Text>
-        </TouchableOpacity>
-      </View>
+            <TouchableOpacity
+              style={[
+                styles.tabButton,
+                activeTab === "decks" && styles.activeTab,
+              ]}
+              onPress={() => setActiveTab("decks")}
+            >
+              <Text
+                style={[
+                  styles.tabText,
+                  activeTab === "decks" && styles.activeTabText,
+                ]}
+              >
+                Manage Decks
+              </Text>
+            </TouchableOpacity>
+          </View>
 
-      <View style={styles.contentContainer}>
-        {activeTab === "moderators" ? (
-          <FlatList
-            data={users}
-            keyExtractor={(item) => item.uid}
-            contentContainerStyle={{ paddingBottom: 40 }}
-            renderItem={({ item }) => (
-              <View style={styles.userCard}>
-                <Text style={styles.username}>{item.username}</Text>
-                <Text style={styles.email}>{item.email}</Text>
-                <Text style={styles.role}>Role: {formatRole(item.role)}</Text>
+          <View style={styles.contentContainer}>
+            {activeTab === "moderators" ? (
+              <FlatList
+                data={users}
+                keyExtractor={(item) => item.uid}
+                contentContainerStyle={{ paddingBottom: 40 }}
+                renderItem={({ item }) => (
+                  <View style={styles.userCard}>
+                    <Text style={styles.username}>{item.username}</Text>
+                    <Text style={styles.email}>{item.email}</Text>
+                    <Text style={styles.role}>
+                      Role: {formatRole(item.role)}
+                    </Text>
 
-                {item.email !== "pocketlingo.admin@yopmail.com" && (
+                    {item.email !== "pocketlingo.admin@yopmail.com" && (
+                      <TouchableOpacity
+                        style={[
+                          styles.button,
+                          item.role === "moderator"
+                            ? styles.demoteButton
+                            : styles.promoteButton,
+                        ]}
+                        onPress={() =>
+                          setShowModal({
+                            user: item,
+                            action:
+                              item.role === "moderator" ? "demote" : "promote",
+                          })
+                        }
+                      >
+                        <Text style={styles.buttonText}>
+                          {item.role === "moderator"
+                            ? "Demote to User"
+                            : "Promote to Moderator"}
+                        </Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+                ListEmptyComponent={
+                  <View style={styles.emptyState}>
+                    <Text style={styles.emptyTitle}>No users found.</Text>
+                  </View>
+                }
+              />
+            ) : (
+              <ScrollView style={{ flex: 1 }}>
+                <Text style={styles.sectionTitle}>Pending Community Decks</Text>
+                {pendingDecks.length === 0 ? (
+                  <Text>No pending decks</Text>
+                ) : (
+                  pendingDecks.map((deck) => renderDeckCard(deck))
+                )}
+
+                <Text style={styles.sectionTitle}>Live Community Decks</Text>
+                {liveDecks.length === 0 ? (
+                  <Text>No live decks yet</Text>
+                ) : (
+                  liveDecks.map((deck) => renderDeckCard(deck))
+                )}
+              </ScrollView>
+            )}
+          </View>
+
+          <Modal visible={!!showModal} transparent animationType="fade">
+            <View style={styles.modal}>
+              <View style={styles.modalContent}>
+                <Text style={styles.modalTitle}>
+                  {showModal?.action === "promote"
+                    ? "Promote to Moderator?"
+                    : "Demote to User?"}
+                </Text>
+                <Text style={styles.modalDescription}>
+                  Are you sure you want to {showModal?.action}{" "}
+                  {showModal?.user.username}?
+                </Text>
+
+                <View style={styles.modalActions}>
                   <TouchableOpacity
-                    style={[
-                      styles.button,
-                      item.role === "moderator"
-                        ? styles.demoteButton
-                        : styles.promoteButton,
-                    ]}
-                    onPress={() =>
-                      setShowModal({
-                        user: item,
-                        action:
-                          item.role === "moderator" ? "demote" : "promote",
-                      })
-                    }
+                    style={[styles.modalButton, styles.cancelButton]}
+                    onPress={() => setShowModal(null)}
                   >
-                    <Text style={styles.buttonText}>
-                      {item.role === "moderator"
-                        ? "Demote to User"
-                        : "Promote to Moderator"}
+                    <Text style={styles.cancelButtonText}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, styles.createButton]}
+                    onPress={() => showModal && toggleModerator(showModal.user)}
+                  >
+                    <Text style={styles.createButtonText}>
+                      {showModal?.action === "promote" ? "Promote" : "Demote"}
                     </Text>
                   </TouchableOpacity>
-                )}
+                </View>
               </View>
-            )}
-            ListEmptyComponent={
-              <View style={styles.emptyState}>
-                <Text style={styles.emptyTitle}>No users found.</Text>
-              </View>
-            }
-          />
-        ) : (
-          selectedDeckId && <ManageCommunityDecks deckId={selectedDeckId} />
-        )}
-      </View>
-
-      <Modal visible={!!showModal} transparent animationType="fade">
-        <View style={styles.modal}>
-          <View style={styles.modalContent}>
-            <Text style={styles.modalTitle}>
-              {showModal?.action === "promote"
-                ? "Promote to Moderator?"
-                : "Demote to User?"}
-            </Text>
-            <Text style={styles.modalDescription}>
-              Are you sure you want to {showModal?.action}{" "}
-              {showModal?.user.username}?
-            </Text>
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={[styles.modalButton, styles.cancelButton]}
-                onPress={() => setShowModal(null)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-
-              <TouchableOpacity
-                style={[styles.modalButton, styles.createButton]}
-                onPress={() => showModal && toggleModerator(showModal.user)}
-              >
-                <Text style={styles.createButtonText}>
-                  {showModal?.action === "promote" ? "Promote" : "Demote"}
-                </Text>
-              </TouchableOpacity>
             </View>
-          </View>
-        </View>
-      </Modal>
+          </Modal>
+        </>
+      )}
     </SafeAreaView>
   );
 }
@@ -272,14 +352,14 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   promoteButton: {
-    backgroundColor: Colors.greenMint,
+    backgroundColor: Colors.blue,
   },
   demoteButton: {
     backgroundColor: Colors.orange,
   },
   buttonText: {
     fontWeight: "600",
-    color: Colors.black,
+    color: Colors.white,
   },
   loader: {
     flex: 1,
@@ -390,5 +470,33 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 8,
+  },
+  deckCard: {
+    backgroundColor: "#f9fafb",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
+  },
+  deckTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: Colors.black,
+  },
+  deckDescription: {
+    fontSize: 14,
+    color: Colors.gray,
+    marginBottom: 4,
+  },
+  deckCreatedBy: {
+    fontSize: 14,
+    color: Colors.gray,
+    marginBottom: 8,
+  },
+  sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    color: Colors.blue,
+    marginTop: 12,
+    marginBottom: 8,
   },
 });
