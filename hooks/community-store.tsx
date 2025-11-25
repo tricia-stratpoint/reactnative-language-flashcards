@@ -200,29 +200,38 @@ export function useAllCommunityDecks() {
   useEffect(() => {
     const unsubscribe = firestore()
       .collection("communityDecks")
-      .where("status", "==", "approved")
-      .orderBy("createdAt", "desc")
-      .onSnapshot(
-        (snapshot) => {
-          const decks: CommunityDeck[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            title: doc.data().title,
-            description: doc.data().description,
-            color: doc.data().color || "#fff",
-            createdBy: doc.data().createdBy,
-            status: doc.data().status,
-            createdAt: doc.data().createdAt?.toMillis?.() || Date.now(),
-          }));
-          setCommunityDecks(decks);
-          setLoading(false);
-        },
-        (error) => {
-          console.error("Error fetching community decks:", error);
-          setLoading(false);
-        }
-      );
+      .onSnapshot(async (snapshot) => {
+        const deckData = await Promise.all(
+          snapshot.docs.map(async (doc) => {
+            const data = doc.data();
+            const deckId = doc.id;
 
-    return unsubscribe;
+            const cardsSnap = await firestore()
+              .collection("communityDecks")
+              .doc(deckId)
+              .collection("cards")
+              .get();
+
+            const cards = cardsSnap.docs.map((c) => ({
+              id: c.id,
+              ...c.data(),
+            })) as Flashcard[];
+
+            return {
+              id: deckId,
+              title: data.title,
+              description: data.description,
+              color: data.color,
+              cards,
+            } as CommunityDeck;
+          })
+        );
+
+        setCommunityDecks(deckData);
+        setLoading(false);
+      });
+
+    return () => unsubscribe();
   }, []);
 
   return { communityDecks, loading };

@@ -16,6 +16,8 @@ import { Colors } from "../constants/colors";
 import { Flashcard } from "@/types/flashcard";
 import { RootStackParamList } from "../navigation/AppNavigator";
 import { saveDeckOffline, isDeckOffline } from "../utils/offlineStorage";
+import { useAllCommunityDecks } from "@/hooks/community-store";
+import type { CommunityDeck, Deck } from "@/types/flashcard";
 
 const DECK_COLORS = [
   Colors.red,
@@ -40,7 +42,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     deleteCard,
     updateCard,
   } = useFlashcardStore();
-  const deck = decks.find((d) => d.id === deckId);
 
   const [deckCards, setDeckCards] = useState<Flashcard[]>([]);
   const [showAddCard, setShowAddCard] = useState<string | null>(null);
@@ -60,33 +61,60 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
 
   const [showDownloadModal, setShowDownloadModal] = useState(false);
   const [isDownloaded, setIsDownloaded] = useState(false);
+  const { communityDecks } = useAllCommunityDecks();
+
+  const deck =
+    decks.find((d) => d.id === deckId) ||
+    communityDecks.find((d) => d.id === deckId);
+
+  const getDeckName = (d: Deck | CommunityDeck) =>
+    isDeck(d) ? d.name : d.title;
 
   useEffect(() => {
-    const filtered = cards.filter((c) => c.deckId === deckId);
-    const sorted = filtered.sort(
-      (a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0)
+    if (!deck) return;
+
+    let deckCardsData: Flashcard[] = [];
+
+    if (!isDeck(deck)) {
+      const communityDeck = communityDecks.find((d) => d.id === deckId);
+      deckCardsData = communityDeck?.cards ?? [];
+    } else {
+      deckCardsData = cards.filter((c) => c.deckId === deckId);
+    }
+
+    setDeckCards(
+      deckCardsData.sort(
+        (a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0)
+      )
     );
-    setDeckCards(sorted);
-  }, [cards, deckId]);
+  }, [cards, deckId, deck, communityDecks]);
 
   useEffect(() => {
     if (deck) {
-      setEditName(deck.name);
+      setEditName(isDeck(deck) ? deck.name : deck.title);
       setEditDescription(deck.description || "");
       setSelectedColor(deck.color || null);
     }
   }, [deck]);
 
-  const isGlobalDeck = deck
-    ? deck.language === "spanish" || deck.language === "french"
-    : false;
-  const isCustomDeck = !isGlobalDeck;
+  const isDeck = (d: Deck | CommunityDeck | null | undefined): d is Deck => {
+    if (!d || typeof d !== "object") return false;
+    return "language" in d && "name" in d;
+  };
+
+  const isGlobalDeck =
+    isDeck(deck) && (deck.language === "spanish" || deck.language === "french");
+
+  const isCustomDeck = isDeck(deck) && !isGlobalDeck;
   const isUserDeck = isCustomDeck;
 
   useEffect(() => {
     if (!deck) return;
+
+    const currentDeck = deck;
+
     (async () => {
-      const downloaded = await isDeckOffline(deck.id, isUserDeck);
+      const downloaded = await isDeckOffline(currentDeck.id, isUserDeck);
       setIsDownloaded(downloaded);
     })();
   }, [deck, isUserDeck]);
@@ -162,9 +190,12 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
       </View>
 
       <View style={styles.container}>
-        <Text style={styles.title}>{deck.name}</Text>
-        <Text style={styles.description}>{deck.description}</Text>
-
+        <Text style={styles.title}>
+          {isDeck(deck) ? deck.name : (deck as CommunityDeck).title}
+        </Text>
+        <Text style={styles.description}>
+          {isDeck(deck) ? deck.description : deck.description || ""}
+        </Text>
         <View style={styles.actions}>
           {isCustomDeck && (
             <TouchableOpacity
@@ -192,7 +223,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </>
           )}
         </View>
-
         <FlatList
           data={deckCards}
           keyExtractor={(item) => item.id}
@@ -234,7 +264,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           }
         />
-
         {/* Add Card Modal */}
         <Modal visible={!!showAddCard} transparent animationType="fade">
           <View style={styles.modal}>
@@ -276,7 +305,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           </View>
         </Modal>
-
         {/* Edit Deck Modal */}
         <Modal visible={showEditDeck} transparent animationType="fade">
           <View style={styles.modal}>
@@ -332,15 +360,14 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           </View>
         </Modal>
-
         {/* Delete Deck Modal */}
         <Modal visible={showDeleteDeckModal} transparent animationType="fade">
           <View style={styles.modal}>
             <View style={styles.modalContent}>
               <Text style={styles.modalTitle}>Delete Deck?</Text>
               <Text style={styles.modalDescription}>
-                Are you sure you want to delete the deck &quot;{deck.name}
-                &quot;? This action cannot be undone.
+                Are you sure you want to delete the deck &quot;
+                {getDeckName(deck)}&quot;? This action cannot be undone.
               </Text>
 
               <View style={styles.modalActions}>
@@ -367,7 +394,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           </View>
         </Modal>
-
         {/* Edit Card Modal */}
         <Modal visible={!!editingCard} transparent animationType="fade">
           <View style={styles.modal}>
@@ -409,7 +435,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           </View>
         </Modal>
-
         {/* Delete Card Modal */}
         <Modal visible={!!showDeleteCardModal} transparent animationType="fade">
           <View style={styles.modal}>
@@ -446,7 +471,6 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
             </View>
           </View>
         </Modal>
-
         {/* Confirm Download Modal */}
         <Modal visible={showDownloadModal} transparent animationType="fade">
           <View style={styles.modal}>
@@ -467,7 +491,9 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
                 <TouchableOpacity
                   style={[styles.modalButton, styles.createButton]}
                   onPress={async () => {
-                    await saveDeckOffline(deck, deckCards, isUserDeck);
+                    if (deck && isDeck(deck)) {
+                      await saveDeckOffline(deck, deckCards, isUserDeck);
+                    }
                     setShowDownloadModal(false);
                     setIsDownloaded(true);
                   }}

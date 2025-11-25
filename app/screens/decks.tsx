@@ -84,26 +84,27 @@ export default function DecksScreen() {
     setShowCreateDeck(false);
   };
 
-  const getDeckStats = (deckId: string) => {
-    const deckCards = cards.filter((card: Flashcard) => card.deckId === deckId);
-    const newCards = deckCards.filter((c) => c.repetitions === 0).length;
-    const dueCards = deckCards.filter((c) => {
+  const getDeckStats = (deckId: string, deckCards?: Flashcard[]) => {
+    const cardsToUse = deckCards ?? cards.filter((c) => c.deckId === deckId);
+    const newCards = cardsToUse.filter((c) => c.repetitions === 0).length;
+    const dueCards = cardsToUse.filter((c) => {
       let nextReviewTime: number;
-      if (typeof c.nextReview === "number") {
-        nextReviewTime = c.nextReview;
-      } else if (c.nextReview && typeof c.nextReview.toMillis === "function") {
-        nextReviewTime = c.nextReview.toMillis();
-      } else {
-        nextReviewTime = 0;
-      }
+      if (typeof c.nextReview === "number") nextReviewTime = c.nextReview;
+      else if (c.nextReview?.toMillis) nextReviewTime = c.nextReview.toMillis();
+      else nextReviewTime = 0;
       return nextReviewTime <= Date.now();
     }).length;
-    return { total: deckCards.length, new: newCards, due: dueCards };
+    return { total: cardsToUse.length, new: newCards, due: dueCards };
   };
 
   // sort decks by language (default + custom)
   const sortedDecks = [...decks].sort((a, b) => {
-    const langOrder = { spanish: 1, french: 2, custom: 3 };
+    const langOrder: Record<Deck["language"], number> = {
+      spanish: 1,
+      french: 2,
+      custom: 3,
+      community: 4,
+    };
     return (
       (langOrder[a.language || "custom"] ?? 3) -
       (langOrder[b.language || "custom"] ?? 3)
@@ -141,7 +142,10 @@ export default function DecksScreen() {
 
         <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
           {sortedDecks.map((deck: Deck & { language?: string }) => {
-            const stats = getDeckStats(deck.id);
+            const stats = getDeckStats(
+              deck.id,
+              cards.filter((c) => c.deckId === deck.id)
+            );
             return (
               <View
                 key={deck.id}
@@ -229,20 +233,84 @@ export default function DecksScreen() {
               </Text>
             </View>
           ) : (
-            allDecks.map((deck: CommunityDeck) => (
-              <View
-                key={deck.id}
-                style={[
-                  styles.deckCard,
-                  { borderLeftColor: deck.color || Colors.blue },
-                ]}
-              >
-                <View style={styles.deckHeader}>
-                  <Text style={styles.deckName}>{deck.title}</Text>
-                  <Text style={styles.deckDescription}>{deck.description}</Text>
+            allDecks.map((deck: CommunityDeck) => {
+              const stats = getDeckStats(deck.id, deck.cards);
+
+              return (
+                <View
+                  key={deck.id}
+                  style={[
+                    styles.deckCard,
+                    { borderLeftColor: deck.color || Colors.blue },
+                  ]}
+                >
+                  <View style={styles.deckHeader}>
+                    <View style={styles.deckInfo}>
+                      <Text style={styles.deckName}>{deck.title}</Text>
+                      <Text style={styles.deckDescription}>
+                        {deck.description}
+                      </Text>
+                    </View>
+                    <BookOpen size={24} color={deck.color || Colors.blue} />
+                  </View>
+
+                  <View style={styles.deckStats}>
+                    <View style={styles.statItem}>
+                      <Text style={styles.statNumber}>{stats.total}</Text>
+                      <Text style={styles.statLabel}>Total</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statNumber, { color: Colors.blue }]}>
+                        {stats.new}
+                      </Text>
+                      <Text style={styles.statLabel}>New</Text>
+                    </View>
+                    <View style={styles.statItem}>
+                      <Text style={[styles.statNumber, { color: Colors.red }]}>
+                        {stats.due}
+                      </Text>
+                      <Text style={styles.statLabel}>Due</Text>
+                    </View>
+                  </View>
+
+                  <View style={styles.deckActions}>
+                    <TouchableOpacity
+                      style={[
+                        styles.actionButton,
+                        { backgroundColor: deck.color || Colors.blue },
+                      ]}
+                      onPress={() =>
+                        navigation.navigate("DeckDetails", {
+                          deckId: deck.id,
+                          language: "community",
+                        })
+                      }
+                    >
+                      <Text style={styles.actionButtonText}>View Deck</Text>
+                    </TouchableOpacity>
+
+                    {offlineDecks.includes(deck.id) && (
+                      <View
+                        style={[
+                          styles.downloadedContainer,
+                          { borderColor: deck.color || Colors.blue },
+                        ]}
+                      >
+                        <Check size={18} color={deck.color || Colors.blue} />
+                        <Text
+                          style={[
+                            styles.downloadedText,
+                            { color: deck.color || Colors.blue },
+                          ]}
+                        >
+                          Downloaded
+                        </Text>
+                      </View>
+                    )}
+                  </View>
                 </View>
-              </View>
-            ))
+              );
+            })
           )}
         </ScrollView>
 

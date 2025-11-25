@@ -22,7 +22,7 @@ export interface Deck {
   name: string;
   description: string;
   color: string;
-  language: "spanish" | "french" | "custom";
+  language: "spanish" | "french" | "custom" | "community";
   isCommunity?: boolean;
 }
 
