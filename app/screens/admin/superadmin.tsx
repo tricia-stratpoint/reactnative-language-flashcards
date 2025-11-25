@@ -67,6 +67,17 @@ export default function SuperAdminPanel() {
     }
   };
 
+  const toggleDeckStatus = async (deck: CommunityDeck) => {
+    const newStatus = deck.status === "approved" ? "pending" : "approved";
+    try {
+      await firestore().collection("communityDecks").doc(deck.id).update({
+        status: newStatus,
+      });
+    } catch (err) {
+      console.error("Error updating deck status:", err);
+    }
+  };
+
   useEffect(() => {
     if (role !== "super_admin") return;
 
@@ -129,7 +140,7 @@ export default function SuperAdminPanel() {
         <Text style={styles.deckDescription}>{deck.description}</Text>
         <Text style={styles.deckCreatedBy}>Created by: {deck.createdBy}</Text>
 
-        {deck.status === "pending" && (
+        {deck.status === "pending" ? (
           <TouchableOpacity
             style={[styles.button, styles.promoteButton]}
             onPress={() =>
@@ -137,6 +148,13 @@ export default function SuperAdminPanel() {
             }
           >
             <Text style={styles.buttonText}>Review Deck</Text>
+          </TouchableOpacity>
+        ) : (
+          <TouchableOpacity
+            style={[styles.button, styles.demoteButton]}
+            onPress={() => toggleDeckStatus(deck)}
+          >
+            <Text style={styles.buttonText}>Unpublish Deck</Text>
           </TouchableOpacity>
         )}
       </View>
