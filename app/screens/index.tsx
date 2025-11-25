@@ -187,6 +187,7 @@ export default function StudyScreen() {
     const communityUnsub = firestore()
       .collection("communityDecks")
       .where("status", "==", "approved")
+      .orderBy("createdAt", "asc")
       .onSnapshot(async (querySnapshot) => {
         const decks = querySnapshot.docs.map((doc) => ({
           id: doc.id,
