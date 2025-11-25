@@ -13,9 +13,11 @@ import {
 import { ArrowLeft, Pencil, Trash2 } from "lucide-react-native";
 import { Colors } from "@/app/constants/colors";
 import { useCommunityStore } from "@/hooks/community-store";
-import type { Flashcard } from "@/types/flashcard";
+import type { Flashcard, CommunityDeck } from "@/types/flashcard";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import type { RootStackParamList } from "@/app/navigation/AppNavigator";
+import { useFlashcardStore } from "@/hooks/flashcard-store";
+import firestore from "@react-native-firebase/firestore";
 
 type Props = NativeStackScreenProps<RootStackParamList, "ManageCommunityDecks">;
 
@@ -46,6 +48,9 @@ export default function ManageCommunityDecks({ route, navigation }: Props) {
     useState<Flashcard | null>(null);
   const [showAddEditCardModal, setShowAddEditCardModal] = useState(false);
   const [showEditDeckModal, setShowEditDeckModal] = useState(false);
+  const [approveDeckModal, setApproveDeckModal] =
+    useState<CommunityDeck | null>(null);
+  const role = useFlashcardStore((state) => state.role);
 
   useEffect(() => {
     if (selectedDeck) {
@@ -111,24 +116,35 @@ export default function ManageCommunityDecks({ route, navigation }: Props) {
       </View>
 
       <View style={styles.actions}>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: Colors.greenMint }]}
-          onPress={() => setShowAddEditCardModal(true)}
-        >
-          <Text style={styles.buttonText}>Add Card</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: Colors.blue }]}
-          onPress={() => setShowEditDeckModal(true)}
-        >
-          <Text style={styles.buttonText}>Edit Deck</Text>
-        </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: Colors.red }]}
-          onPress={() => setShowDeleteDeckModal(true)}
-        >
-          <Text style={styles.buttonText}>Delete Deck</Text>
-        </TouchableOpacity>
+        {role === "super_admin" ? (
+          <TouchableOpacity
+            style={[styles.button, { backgroundColor: Colors.blue }]}
+            onPress={() => setApproveDeckModal(selectedDeck)}
+          >
+            <Text style={styles.buttonText}>Approve Deck</Text>
+          </TouchableOpacity>
+        ) : (
+          <>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: Colors.greenMint }]}
+              onPress={() => setShowAddEditCardModal(true)}
+            >
+              <Text style={styles.buttonText}>Add Card</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: Colors.blue }]}
+              onPress={() => setShowEditDeckModal(true)}
+            >
+              <Text style={styles.buttonText}>Edit Deck</Text>
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.button, { backgroundColor: Colors.red }]}
+              onPress={() => setShowDeleteDeckModal(true)}
+            >
+              <Text style={styles.buttonText}>Delete Deck</Text>
+            </TouchableOpacity>
+          </>
+        )}
       </View>
 
       <FlatList
@@ -141,21 +157,25 @@ export default function ManageCommunityDecks({ route, navigation }: Props) {
                 <Text style={styles.cardFront}>{item.front}</Text>
                 <Text style={styles.cardBack}>{item.back}</Text>
               </View>
-              <View style={styles.cardActions}>
-                <TouchableOpacity
-                  onPress={() => {
-                    setEditingCard(item);
-                    setCardFront(item.front);
-                    setCardBack(item.back);
-                    setShowAddEditCardModal(true);
-                  }}
-                >
-                  <Pencil color={Colors.blue} size={20} />
-                </TouchableOpacity>
-                <TouchableOpacity onPress={() => setShowDeleteCardModal(item)}>
-                  <Trash2 color={Colors.red} size={20} />
-                </TouchableOpacity>
-              </View>
+              {role !== "super_admin" && (
+                <View style={styles.cardActions}>
+                  <TouchableOpacity
+                    onPress={() => {
+                      setEditingCard(item);
+                      setCardFront(item.front);
+                      setCardBack(item.back);
+                      setShowAddEditCardModal(true);
+                    }}
+                  >
+                    <Pencil color={Colors.blue} size={20} />
+                  </TouchableOpacity>
+                  <TouchableOpacity
+                    onPress={() => setShowDeleteCardModal(item)}
+                  >
+                    <Trash2 color={Colors.red} size={20} />
+                  </TouchableOpacity>
+                </View>
+              )}
             </View>
           </View>
         )}
@@ -299,6 +319,46 @@ export default function ManageCommunityDecks({ route, navigation }: Props) {
                 }
               >
                 <Text style={styles.createButtonText}>Delete</Text>
+              </TouchableOpacity>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      <Modal visible={!!approveDeckModal} transparent animationType="fade">
+        <View style={styles.modal}>
+          <View style={styles.modalContent}>
+            <Text style={styles.modalTitle}>Approve Community Deck?</Text>
+            <Text style={styles.modalDescription}>
+              This deck will be publicly visible to everyone. Are you sure you
+              want to approve &quot;{approveDeckModal?.title}&quot;?
+            </Text>
+
+            <View style={styles.modalActions}>
+              <TouchableOpacity
+                style={[styles.modalButton, styles.cancelButton]}
+                onPress={() => setApproveDeckModal(null)}
+              >
+                <Text style={styles.cancelButtonText}>Cancel</Text>
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                style={[styles.modalButton, styles.createButton]}
+                onPress={async () => {
+                  if (!approveDeckModal) return;
+                  try {
+                    await firestore()
+                      .collection("communityDecks")
+                      .doc(approveDeckModal.id)
+                      .update({ status: "approved" });
+                  } catch (err) {
+                    console.error(err);
+                  } finally {
+                    setApproveDeckModal(null);
+                  }
+                }}
+              >
+                <Text style={styles.createButtonText}>Approve</Text>
               </TouchableOpacity>
             </View>
           </View>

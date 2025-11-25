@@ -17,6 +17,8 @@ import { UserRole } from "@/app/utils/roles";
 import { ArrowLeft } from "lucide-react-native";
 import { useNavigation } from "@react-navigation/native";
 import type { CommunityDeck } from "@/types/flashcard";
+import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import type { RootStackParamList } from "@/app/navigation/AppNavigator";
 
 interface User {
   uid: string;
@@ -25,8 +27,13 @@ interface User {
   role: UserRole;
 }
 
+type SuperAdminNavigationProp = NativeStackNavigationProp<
+  RootStackParamList,
+  "SuperAdminPanel"
+>;
+
 export default function SuperAdminPanel() {
-  const navigation = useNavigation();
+  const navigation = useNavigation<SuperAdminNavigationProp>();
   const role = useFlashcardStore((state) => state.role);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -39,8 +46,6 @@ export default function SuperAdminPanel() {
   );
   const [pendingDecks, setPendingDecks] = useState<CommunityDeck[]>([]);
   const [liveDecks, setLiveDecks] = useState<CommunityDeck[]>([]);
-  const [approveDeckModal, setApproveDeckModal] =
-    useState<CommunityDeck | null>(null);
 
   const formatRole = (role: string) =>
     role
@@ -127,9 +132,11 @@ export default function SuperAdminPanel() {
         {deck.status === "pending" && (
           <TouchableOpacity
             style={[styles.button, styles.promoteButton]}
-            onPress={() => setApproveDeckModal(deck)}
+            onPress={() =>
+              navigation.navigate("ManageCommunityDecks", { deckId: deck.id })
+            }
           >
-            <Text style={styles.buttonText}>Approve Deck</Text>
+            <Text style={styles.buttonText}>Review Deck</Text>
           </TouchableOpacity>
         )}
       </View>
@@ -287,46 +294,6 @@ export default function SuperAdminPanel() {
                     <Text style={styles.createButtonText}>
                       {showModal?.action === "promote" ? "Promote" : "Demote"}
                     </Text>
-                  </TouchableOpacity>
-                </View>
-              </View>
-            </View>
-          </Modal>
-
-          <Modal visible={!!approveDeckModal} transparent animationType="fade">
-            <View style={styles.modal}>
-              <View style={styles.modalContent}>
-                <Text style={styles.modalTitle}>Approve Community Deck?</Text>
-                <Text style={styles.modalDescription}>
-                  This deck will be publicly visible to everyone. Are you sure
-                  you want to approve &quot;{approveDeckModal?.title}&quot;?
-                </Text>
-
-                <View style={styles.modalActions}>
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.cancelButton]}
-                    onPress={() => setApproveDeckModal(null)}
-                  >
-                    <Text style={styles.cancelButtonText}>Cancel</Text>
-                  </TouchableOpacity>
-
-                  <TouchableOpacity
-                    style={[styles.modalButton, styles.createButton]}
-                    onPress={async () => {
-                      if (!approveDeckModal) return;
-                      try {
-                        await firestore()
-                          .collection("communityDecks")
-                          .doc(approveDeckModal.id)
-                          .update({ status: "approved" });
-                      } catch (err) {
-                        console.error(err);
-                      } finally {
-                        setApproveDeckModal(null);
-                      }
-                    }}
-                  >
-                    <Text style={styles.createButtonText}>Approve</Text>
                   </TouchableOpacity>
                 </View>
               </View>
