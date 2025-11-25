@@ -224,7 +224,7 @@ export default function DecksScreen() {
             );
           })}
 
-          {allDecks.length === 0 ? (
+          {sortedDecks.length === 0 && allDecks.length === 0 ? (
             <View style={styles.emptyState}>
               <BookAlert size={64} color={Colors.tealDark} />
               <Text style={styles.emptyTitle}>No decks yet</Text>
