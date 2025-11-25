@@ -38,6 +38,12 @@ export default function StudyScreen() {
   const { cards, loadAllLanguages, decks: storeDecks } = useFlashcardStore();
   const user = auth().currentUser;
 
+  const currentCardIndexRef = React.useRef(currentCardIndex);
+  currentCardIndexRef.current = currentCardIndex;
+
+  const sessionStatsRef = React.useRef(sessionStats);
+  sessionStatsRef.current = sessionStats;
+
   useEffect(() => {
     const init = async () => {
       await loadAllLanguages();
@@ -46,35 +52,26 @@ export default function StudyScreen() {
     init();
   }, [loadAllLanguages]);
 
-  const fetchCommunityDecks = useCallback(async () => {
-    try {
-      const snapshot = await firestore()
-        .collection("communityDecks")
-        .where("status", "==", "approved")
-        .get();
-
-      const communityDecks: Deck[] = snapshot.docs.map((doc) => ({
-        id: doc.id,
-        language: doc.data().language ?? "english",
-        name: doc.data().title ?? "Untitled Deck",
-        description: doc.data().description ?? "",
-        color: doc.data().color ?? null,
-      }));
-
-      return communityDecks;
-    } catch (error) {
-      console.error("Error fetching community decks:", error);
-      return [];
-    }
-  }, []);
-
   useEffect(() => {
-    const loadDecks = async () => {
-      const communityDecks = await fetchCommunityDecks();
-      setDecks([...storeDecks, ...communityDecks]);
-    };
-    loadDecks();
-  }, [storeDecks, fetchCommunityDecks]);
+    const unsubscribe = firestore()
+      .collection("communityDecks")
+      .where("status", "==", "approved")
+      .onSnapshot((querySnapshot) => {
+        const updatedCommunityDecks = querySnapshot.docs.map((doc) => ({
+          id: doc.id,
+          language: doc.data().language ?? "english",
+          name: doc.data().title ?? "Untitled Deck",
+          description: doc.data().description ?? "",
+          color: doc.data().color ?? null,
+        }));
+
+        setDecks((prev) => {
+          const local = storeDecks;
+          return [...local, ...updatedCommunityDecks];
+        });
+      });
+    return () => unsubscribe();
+  }, [storeDecks]);
 
   const deckCardCounts = useMemo(() => {
     return decks.reduce((acc: Record<string, number>, deck: Deck) => {
@@ -130,6 +127,7 @@ export default function StudyScreen() {
         );
 
         setStudyCards(fetchedCards);
+        setTotalCards(fetchedCards.length);
         return fetchedCards;
       } catch (error) {
         console.error("Error fetching flashcards:", error);
@@ -142,7 +140,7 @@ export default function StudyScreen() {
 
   // get username
   useEffect(() => {
-    if (user && user.displayName) setUsername(user.displayName);
+    if (user?.displayName) setUsername(user.displayName);
   }, [user]);
 
   // fetch flashcards when deck is selected
@@ -150,9 +148,7 @@ export default function StudyScreen() {
     if (selectedDeck) {
       const deck = decks.find((d) => d.id === selectedDeck);
       if (deck) {
-        fetchFlashcards(deck).then((fetched) => {
-          setTotalCards(fetched.length);
-        });
+        fetchFlashcards(deck);
       }
       setCurrentCardIndex(0);
       setSessionStats({ studied: 0, correct: 0 });
