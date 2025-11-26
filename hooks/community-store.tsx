@@ -222,6 +222,12 @@ export function useAllCommunityDecks() {
               title: data.title,
               description: data.description,
               color: data.color,
+              status: data.status,
+              createdBy: data.createdBy ?? "",
+              createdAt:
+                data.createdAt && typeof data.createdAt.toMillis === "function"
+                  ? data.createdAt.toMillis()
+                  : Date.now(),
               cards,
             } as CommunityDeck;
           })
