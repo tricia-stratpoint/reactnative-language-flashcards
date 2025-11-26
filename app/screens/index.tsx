@@ -107,6 +107,22 @@ export default function StudyScreen() {
     }
   };
 
+  const sortedDecks = useMemo(() => {
+    const spanish = decks.filter(
+      (d) => d.language === "spanish" && !d.isCommunity
+    );
+    const french = decks.filter(
+      (d) => d.language === "french" && !d.isCommunity
+    );
+    const community = decks.filter((d) => d.isCommunity);
+    const user = decks.filter(
+      (d) =>
+        !d.isCommunity && d.language !== "spanish" && d.language !== "french"
+    );
+
+    return [...spanish, ...french, ...community, ...user];
+  }, [decks]);
+
   // get username
   useEffect(() => {
     if (user?.displayName) setUsername(user.displayName);
@@ -456,7 +472,7 @@ export default function StudyScreen() {
                 </Text>
               </View>
             ) : (
-              decks.map((deck) => (
+              sortedDecks.map((deck) => (
                 <TouchableOpacity
                   key={deck.id}
                   style={[
@@ -493,9 +509,7 @@ export default function StudyScreen() {
                       </Text>
                     </View>
 
-                    {downloadedDecks.some(
-                      (id) => String(id) === String(deck.id)
-                    ) && (
+                    {downloadedDecks.includes(deck.id) && (
                       <View style={styles.downloadedTag}>
                         <Check size={16} color={Colors.white} />
                         <Text style={styles.downloadedText}>Downloaded</Text>
