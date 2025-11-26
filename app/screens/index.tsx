@@ -60,7 +60,7 @@ export default function StudyScreen() {
       .collection("communityDecks")
       .where("status", "==", "approved")
       .onSnapshot((querySnapshot) => {
-        const updatedCommunityDecks = querySnapshot.docs.map((doc) => ({
+        const communityDecks: Deck[] = querySnapshot.docs.map((doc) => ({
           id: doc.id,
           language: doc.data().language ?? "english",
           name: doc.data().title ?? "Untitled Deck",
@@ -69,59 +69,23 @@ export default function StudyScreen() {
           isCommunity: true,
         }));
 
-        setDecks((prev) => {
-          const all = [...storeDecks];
+        setDecks([...storeDecks, ...communityDecks]);
 
-          updatedCommunityDecks.forEach((d) => {
-            if (!all.some((x) => x.id === d.id)) {
-              all.push(d);
-            }
-          });
-
-          return all;
+        communityDecks.forEach((deck) => {
+          firestore()
+            .collection("communityDecks")
+            .doc(deck.id)
+            .collection("cards")
+            .onSnapshot((cardSnap) => {
+              setCommunityCardCounts((prev) => ({
+                ...prev,
+                [deck.id]: cardSnap.size,
+              }));
+            });
         });
       });
     return () => unsubscribe();
   }, [storeDecks]);
-
-  const deckCardCounts = useMemo(() => {
-    return decks.reduce<Record<string, number>>((acc, deck) => {
-      if (deck.isCommunity) {
-        acc[deck.id] = communityCardCounts[deck.id] ?? 0;
-      } else {
-        acc[deck.id] = cards.filter((c) => c.deckId === deck.id).length;
-      }
-      return acc;
-    }, {});
-  }, [decks, cards, communityCardCounts]);
-
-  const getDeckColor = (deck: Deck) => {
-    if (deck.color) return deck.color;
-    switch (deck.language) {
-      case "spanish":
-        return Colors.greenMint;
-      case "french":
-        return Colors.blue;
-      default:
-        return Colors.blue;
-    }
-  };
-
-  const sortedDecks = useMemo(() => {
-    const spanish = decks.filter(
-      (d) => d.language === "spanish" && !d.isCommunity
-    );
-    const french = decks.filter(
-      (d) => d.language === "french" && !d.isCommunity
-    );
-    const community = decks.filter((d) => d.isCommunity);
-    const user = decks.filter(
-      (d) =>
-        !d.isCommunity && d.language !== "spanish" && d.language !== "french"
-    );
-
-    return [...spanish, ...french, ...community, ...user];
-  }, [decks]);
 
   // get username
   useEffect(() => {
@@ -195,43 +159,45 @@ export default function StudyScreen() {
     const unsubscribe = NetInfo.addEventListener((state) => {
       setIsConnected(!!state.isConnected);
     });
-
     return () => unsubscribe();
   }, []);
 
-  useEffect(() => {
-    const communityUnsub = firestore()
-      .collection("communityDecks")
-      .where("status", "==", "approved")
-      .orderBy("createdAt", "asc")
-      .onSnapshot(async (querySnapshot) => {
-        const decks = querySnapshot.docs.map((doc) => ({
-          id: doc.id,
-          language: doc.data().language ?? "english",
-          name: doc.data().title ?? "Untitled Deck",
-          description: doc.data().description ?? "",
-          color: doc.data().color ?? null,
-          isCommunity: true,
-        }));
+  const deckCardCounts = useMemo(() => {
+    return decks.reduce<Record<string, number>>((acc, deck) => {
+      acc[deck.id] = deck.isCommunity
+        ? communityCardCounts[deck.id] ?? 0
+        : cards.filter((c) => c.deckId === deck.id).length;
+      return acc;
+    }, {});
+  }, [decks, cards, communityCardCounts]);
 
-        setDecks([...storeDecks, ...decks]);
+  const getDeckColor = (deck: Deck) => {
+    if (deck.color) return deck.color;
+    switch (deck.language) {
+      case "spanish":
+        return Colors.greenMint;
+      case "french":
+        return Colors.blue;
+      default:
+        return Colors.blue;
+    }
+  };
 
-        decks.forEach((deck) => {
-          firestore()
-            .collection("communityDecks")
-            .doc(deck.id)
-            .collection("cards")
-            .onSnapshot((cardSnap) => {
-              setCommunityCardCounts((prev) => ({
-                ...prev,
-                [deck.id]: cardSnap.size,
-              }));
-            });
-        });
-      });
+  const sortedDecks = useMemo(() => {
+    const spanish = decks.filter(
+      (d) => d.language === "spanish" && !d.isCommunity
+    );
+    const french = decks.filter(
+      (d) => d.language === "french" && !d.isCommunity
+    );
+    const community = decks.filter((d) => d.isCommunity);
+    const user = decks.filter(
+      (d) =>
+        !d.isCommunity && d.language !== "spanish" && d.language !== "french"
+    );
 
-    return () => communityUnsub();
-  }, [storeDecks]);
+    return [...spanish, ...french, ...community, ...user];
+  }, [decks]);
 
   // handle card swipe
   const handleCardSwipe = async (difficulty: Flashcard["difficulty"]) => {
@@ -297,10 +263,7 @@ export default function StudyScreen() {
 
   const startStudySession = (deckId: string) => {
     // if offline, only allow downloaded decks to be studied
-    if (!isConnected && !downloadedDecks.includes(deckId)) {
-      console.log("Deck not available offline:", deckId);
-      return;
-    }
+    if (!isConnected && !downloadedDecks.includes(deckId)) return;
     setSelectedDeck(deckId);
   };
 
