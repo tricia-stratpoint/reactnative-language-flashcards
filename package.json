@@ -15,7 +15,14 @@
     "test:login": "jest __tests__/LoginScreen.test.tsx",
     "test:store": "jest __tests__/FlashcardStore.test.tsx",
     "test:notifs": "jest __tests__/notifications.test.tsx",
-    "test:offline": "jest __tests__/OfflineStorage.test.tsx"
+    "test:offline": "jest __tests__/OfflineStorage.test.tsx",
+    "prepare": "husky"
+  },
+  "lint-staged": {
+    "*.{js,jsx,ts,tsx}": [
+      "prettier --write",
+      "eslint --fix"
+    ]
   },
   "jest": {
     "preset": "jest-expo",
