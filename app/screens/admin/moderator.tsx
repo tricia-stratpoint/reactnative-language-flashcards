@@ -84,7 +84,7 @@ const ModeratorPanel = () => {
           console.error("Firestore snapshot error:", error);
           setDecks([]);
           setLoading(false);
-        }
+        },
       );
 
     return () => unsub();
@@ -103,7 +103,6 @@ const ModeratorPanel = () => {
 
     const user = auth().currentUser;
     if (!user) {
-      console.log("No logged-in user found!");
       return;
     }
 

@@ -43,10 +43,7 @@ export default function SettingsScreen() {
         index: 0,
         routes: [{ name: "Login" as never }],
       });
-      console.log("User logged out and token cleared");
-    } catch (error) {
-      console.log("Logout error:", error);
-    }
+    } catch {}
   };
 
   const handleClearData = () => setShowClearModal(true);
@@ -442,10 +439,10 @@ export default function SettingsScreen() {
                     if (deckToDelete) {
                       await deleteOfflineDeck(
                         deckToDelete.deck.id,
-                        deckToDelete.isUserDeck
+                        deckToDelete.isUserDeck,
                       );
                       setDownloaded((prev) =>
-                        prev.filter((d) => d.deck.id !== deckToDelete.deck.id)
+                        prev.filter((d) => d.deck.id !== deckToDelete.deck.id),
                       );
                     }
                     setShowDeleteModal(false);

@@ -1,4 +1,3 @@
-
 /*
 The code here will is moved to our infrastructure (with ctrl+c ctrl+v)
  where we add it in _layout.tsx as it is.
@@ -293,9 +292,7 @@ const OptionalBlurView = ({
       try {
         const { BlurView } = await import("expo-blur");
         setBlurComponent(() => BlurView);
-      } catch (error) {
-        console.log("Blur library not available");
-      }
+      } catch {}
     };
 
     loadBlurComponent();
@@ -604,4 +601,3 @@ const styles = StyleSheet.create({
     fontWeight: "600",
   },
 });
-

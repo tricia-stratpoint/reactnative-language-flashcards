@@ -7,7 +7,7 @@ const USER_KEY = "user_decks";
 export const saveDeckOffline = async (
   deck: Deck,
   cards: Flashcard[],
-  isUserDeck: boolean
+  isUserDeck: boolean,
 ) => {
   try {
     const key = isUserDeck ? USER_KEY : GLOBAL_KEY;
@@ -52,10 +52,7 @@ export async function deleteOfflineDeck(deckId: string, isUserDeck: boolean) {
 
     const updated = JSON.parse(stored).filter((d: any) => d.deck.id !== deckId);
     await AsyncStorage.setItem(key, JSON.stringify(updated));
-    console.log("Deleted deck", deckId, isUserDeck);
-  } catch (err) {
-    console.log("Error deleting deck:", err);
-  }
+  } catch {}
 }
 
 export const isDeckOffline = async (deckId: string, isUserDeck: boolean) => {

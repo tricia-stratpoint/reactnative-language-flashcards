@@ -9,13 +9,7 @@ import firestore from "@react-native-firebase/firestore";
 
 // ask for permission
 export async function requestNotificationPermission() {
-  const settings = await notifee.requestPermission();
-
-  if (settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
-    console.log("Notifications permission granted.");
-  } else {
-    console.log("Notifications permission denied.");
-  }
+  await notifee.requestPermission();
 }
 
 // register for remote messages for fcm
@@ -24,15 +18,7 @@ export async function registerDeviceForFCM() {
     await messaging().registerDeviceForRemoteMessages();
   }
 
-  const authStatus = await messaging().requestPermission();
-  if (
-    authStatus === messaging.AuthorizationStatus.AUTHORIZED ||
-    authStatus === messaging.AuthorizationStatus.PROVISIONAL
-  ) {
-    console.log("FCM permission granted.");
-  } else {
-    console.log("FCM permission denied.");
-  }
+  await messaging().requestPermission();
 }
 
 // get fcm token
@@ -40,7 +26,6 @@ export async function getFcmToken() {
   try {
     await registerDeviceForFCM();
     const token = await messaging().getToken();
-    console.log("FCM Token:", token);
     return token;
   } catch (err) {
     console.error("Failed to get FCM token:", err);
@@ -51,8 +36,6 @@ export async function getFcmToken() {
 // foreground message listener
 export function setupForegroundListener() {
   messaging().onMessage(async (remoteMessage) => {
-    console.log("FCM Message Received:", remoteMessage);
-
     await notifee.displayNotification({
       title: remoteMessage.notification?.title || "New Message",
       body: remoteMessage.notification?.body || "You have a new notification.",
@@ -70,7 +53,6 @@ export function setupForegroundListener() {
 }
 
 messaging().setBackgroundMessageHandler(async (remoteMessage) => {
-  console.log("Message handled in background:", remoteMessage);
   await notifee.displayNotification({
     title: remoteMessage.notification?.title || "New Message",
     body: remoteMessage.notification?.body || "You have a new notification.",
@@ -95,8 +77,7 @@ export async function initializeNotificationChannel() {
 }
 
 export async function showTestNotification() {
-  const settings = await notifee.requestPermission();
-  console.log("iOS permission result:", settings);
+  await notifee.requestPermission();
 
   let channelId: string | undefined = undefined;
   if (Platform.OS === "android") {
@@ -142,8 +123,7 @@ export const handleManageNotifications = async () => {
     if (settings.authorizationStatus >= AuthorizationStatus.AUTHORIZED) {
       // if already granted, open system settings
       await registerDeviceForFCM();
-      const token = await messaging().getToken();
-      console.log("FCM Token:", token);
+      await messaging().getToken();
 
       // optionally open settings
       if (Platform.OS === "ios") {
@@ -153,9 +133,6 @@ export const handleManageNotifications = async () => {
       }
     } else {
       // if not granted, request permission. open system settings
-      console.log(
-        "Notifications permission denied. Redirecting to system settings..."
-      );
       if (Platform.OS === "ios") {
         await Linking.openURL("app-settings:");
       } else {
@@ -173,7 +150,6 @@ export async function scheduleStudyReminder(userId: string) {
     const userDoc = await firestore().collection("users").doc(userId).get();
     const username = userDoc.data()?.username;
     if (!username) {
-      console.log(`No username found for user ${userId}, skipping reminder.`);
       return;
     }
 
@@ -187,7 +163,6 @@ export async function scheduleStudyReminder(userId: string) {
 
     const lastStudyTimestamp = progressDoc.data()?.lastStudyDate;
     if (!lastStudyTimestamp) {
-      console.log(`No lastStudyDate found for ${username}, setting default.`);
       await firestore()
         .collection("users")
         .doc(userId)
@@ -195,7 +170,7 @@ export async function scheduleStudyReminder(userId: string) {
         .doc("progress")
         .set(
           { lastStudyDate: firestore.Timestamp.fromDate(new Date()) },
-          { merge: true }
+          { merge: true },
         );
       return;
     }
@@ -203,7 +178,6 @@ export async function scheduleStudyReminder(userId: string) {
     const lastStudyTime = lastStudyTimestamp.toMillis?.() ?? lastStudyTimestamp;
 
     if (isNaN(lastStudyTime)) {
-      console.log(`Invalid lastStudyDate for ${username}, skipping reminder.`);
       return;
     }
 
@@ -227,11 +201,7 @@ export async function scheduleStudyReminder(userId: string) {
         },
         ios: { sound: "default" },
       },
-      { type: TriggerType.TIMESTAMP, timestamp: nextStudyTime.getTime() }
+      { type: TriggerType.TIMESTAMP, timestamp: nextStudyTime.getTime() },
     );
-
-    console.log(`Scheduled study reminder for ${username} at`, nextStudyTime);
-  } catch (error) {
-    console.error("Error scheduling study reminder:", error);
-  }
+  } catch {}
 }

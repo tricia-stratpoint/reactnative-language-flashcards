@@ -45,7 +45,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
     try {
       const userCredential = await auth().signInWithEmailAndPassword(
         email,
-        password
+        password,
       );
       const user = userCredential.user;
 
@@ -62,10 +62,8 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       const { fetchUserRole } = useFlashcardStore.getState();
       await fetchUserRole();
 
-      console.log("User logged in:", user);
       navigation.replace("MainTabs");
     } catch (err: any) {
-      console.log("Login error:", err);
       if (err.code === "auth/user-not-found") {
         setError("No account found with this email.");
       } else if (err.code === "auth/wrong-password") {
@@ -84,8 +82,7 @@ export default function LoginScreen({ navigation }: { navigation: any }) {
       try {
         await user.sendEmailVerification();
         alert("Verification email resent!");
-      } catch (err) {
-        console.log("Resend email error:", err);
+      } catch {
         setError("Failed to resend verification email. Try again later.");
       }
     }

@@ -31,7 +31,7 @@ messaging().setBackgroundMessageHandler(async (remoteMessage) => {
 
 export default function App() {
   const [initialRoute, setInitialRoute] = useState<"Login" | "MainTabs">(
-    "Login"
+    "Login",
   );
 
   useEffect(() => {
@@ -51,8 +51,7 @@ export default function App() {
           const { fetchUserRole } = useFlashcardStore.getState();
           await fetchUserRole();
         }
-      } catch (err) {
-        console.log("Auto-login check error:", err);
+      } catch {
         setInitialRoute("Login");
       } finally {
         SplashScreen.hideAsync();
@@ -79,9 +78,7 @@ export default function App() {
         await registerDeviceForFCM(); // register device
         await getFcmToken(); // get token
         setupForegroundListener(); // foreground listener
-      } catch (err) {
-        console.log("Notification init error:", err);
-      }
+      } catch {}
     };
     initNotifications();
   }, []);

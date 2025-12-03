@@ -47,7 +47,7 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
     try {
       const userCredential = await authInstance.createUserWithEmailAndPassword(
         email,
-        password
+        password,
       );
 
       if (userCredential.user) {
@@ -64,7 +64,7 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
           await saveSecureItem("userToken", token);
           navigation.replace("MainTabs");
         } else {
-          console.log("Verification email sent; user must verify first.");
+          setError("Please verify your email before logging in.");
         }
       }
     } catch (error: any) {
@@ -81,8 +81,7 @@ export default function SignUpScreen({ navigation }: { navigation: any }) {
         await user.sendEmailVerification();
         setVerificationSent(true);
         alert("Verification email resent!");
-      } catch (err) {
-        console.log("Resend email error:", err);
+      } catch {
         setError("Failed to resend verification email. Try again later.");
       }
     }

@@ -109,8 +109,6 @@ const defaultStats = {
 };
 
 async function uploadLanguage(language, decks, cards) {
-  console.log(`Uploading ${language} decks and cards...`);
-
   for (const deck of decks) {
     const deckRef = db
       .collection("flashcards")
@@ -143,11 +141,7 @@ async function uploadFlashcards() {
       ...defaultStats,
       updatedAt: admin.firestore.FieldValue.serverTimestamp(),
     });
-
-    console.log("Upload completed successfully!");
-  } catch (error) {
-    console.error("Upload failed:", error);
-  }
+  } catch {}
 }
 
 uploadFlashcards();

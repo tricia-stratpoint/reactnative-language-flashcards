@@ -48,7 +48,7 @@ const DEFAULT_ACHIEVEMENTS: UserStats["achievements"] = [
 ];
 
 const toMillis = (
-  ts?: FirebaseFirestoreTypes.Timestamp | number | Date | null
+  ts?: FirebaseFirestoreTypes.Timestamp | number | Date | null,
 ) => {
   if (!ts) return Date.now();
   if (ts instanceof firestore.Timestamp) return ts.toDate().getTime();
@@ -90,7 +90,7 @@ const createOrUpdateUserDocument = async () => {
         role,
         createdAt: firestore.FieldValue.serverTimestamp(),
       },
-      { merge: true }
+      { merge: true },
     );
     useFlashcardStore.getState().setUserRole(role);
   } catch (err) {
@@ -109,11 +109,8 @@ const refreshUserToken = async () => {
 
     if (expiresIn < 5 * 60 * 1000) {
       await user.getIdToken(true);
-      console.log("Firebase ID token refreshed");
     }
-  } catch (err) {
-    console.error("Error refreshing Firebase token:", err);
-  }
+  } catch {}
 };
 
 const startAutoTokenRefresh = () => {
@@ -158,7 +155,7 @@ interface FlashcardState {
   createDeck: (
     name: string,
     description: string,
-    color: string
+    color: string,
   ) => Promise<void>;
   updateDeck: (deckId: string, updatedData: Partial<Deck>) => Promise<void>;
   deleteDeck: (deckId: string) => Promise<void>;
@@ -166,12 +163,12 @@ interface FlashcardState {
   updateCard: (
     deckId: string,
     cardId: string,
-    updatedData: Partial<Flashcard>
+    updatedData: Partial<Flashcard>,
   ) => Promise<void>;
   deleteCard: (deckId: string, cardId: string) => Promise<void>;
   fetchAchievements: () => Promise<void>;
   updateAchievements: (
-    newStats: Partial<UserStats> & { perfectSession?: boolean }
+    newStats: Partial<UserStats> & { perfectSession?: boolean },
   ) => void;
   studyCard: (cardId: string, isPerfectSession: boolean) => void;
 }
@@ -232,7 +229,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
           .onSnapshot((decksSnap) => {
             if (!decksSnap?.docs) return;
             const sharedDecks = decksSnap.docs.map(
-              (d) => ({ id: d.id, language: lang, ...d.data() } as Deck)
+              (d) => ({ id: d.id, language: lang, ...d.data() }) as Deck,
             );
 
             sharedDecks.forEach((deck) => {
@@ -281,7 +278,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
         .onSnapshot((customDecksSnap) => {
           if (!customDecksSnap?.docs) return;
           const userDecks = customDecksSnap.docs.map(
-            (d) => ({ id: d.id, language: "custom", ...d.data() } as Deck)
+            (d) => ({ id: d.id, language: "custom", ...d.data() }) as Deck,
           );
 
           userDecks.forEach((deck) => {
@@ -350,7 +347,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
 
     set((state) => ({
       decks: state.decks.map((d) =>
-        d.id === deckId ? { ...d, ...updatedData } : d
+        d.id === deckId ? { ...d, ...updatedData } : d,
       ),
     }));
   },
@@ -360,7 +357,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
     if (!user) return;
 
     const deckCards = get().cards.filter(
-      (c) => c.deckId === deckId && c.language === "custom"
+      (c) => c.deckId === deckId && c.language === "custom",
     );
     for (const card of deckCards) {
       await firestore()
@@ -403,7 +400,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
       .update(updatedData);
     set((state) => ({
       cards: state.cards.map((c) =>
-        c.id === cardId ? { ...c, ...updatedData } : c
+        c.id === cardId ? { ...c, ...updatedData } : c,
       ),
     }));
   },
@@ -499,7 +496,7 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
           achievements: finalStats.achievements,
           cardsStudiedToday: finalStats.cardsStudiedToday,
         },
-        { merge: true }
+        { merge: true },
       );
   },
 
