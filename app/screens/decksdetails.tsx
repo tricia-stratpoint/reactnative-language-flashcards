@@ -84,8 +84,8 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
 
     setDeckCards(
       deckCardsData.sort(
-        (a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0)
-      )
+        (a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0),
+      ),
     );
   }, [cards, deckId, deck, communityDecks]);
 
@@ -226,6 +226,11 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
         <FlatList
           data={deckCards}
           keyExtractor={(item) => item.id}
+          removeClippedSubviews={true}
+          maxToRenderPerBatch={10}
+          windowSize={5}
+          initialNumToRender={10}
+          updateCellsBatchingPeriod={50}
           renderItem={({ item }) => (
             <View style={styles.card}>
               <View style={styles.cardHeader}>

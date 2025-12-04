@@ -150,6 +150,11 @@ export default function ManageCommunityDecks({ route, navigation }: Props) {
       <FlatList
         data={deckCards}
         keyExtractor={(item) => item.id}
+        removeClippedSubviews={true}
+        maxToRenderPerBatch={10}
+        windowSize={5}
+        initialNumToRender={10}
+        updateCellsBatchingPeriod={50}
         renderItem={({ item }) => (
           <View style={styles.card}>
             <View style={styles.cardHeader}>
