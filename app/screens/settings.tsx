@@ -354,17 +354,13 @@ export default function SettingsScreen() {
                 <FlatList
                   data={downloaded}
                   keyExtractor={(item) => item.deck.id}
+                  removeClippedSubviews={true}
+                  maxToRenderPerBatch={10}
+                  windowSize={5}
+                  initialNumToRender={10}
+                  updateCellsBatchingPeriod={50}
                   renderItem={({ item }) => (
-                    <View
-                      style={{
-                        flexDirection: "row",
-                        justifyContent: "space-between",
-                        alignItems: "center",
-                        paddingVertical: 10,
-                        borderBottomWidth: 1,
-                        borderBottomColor: "#e5e7eb",
-                      }}
-                    >
+                    <View style={styles.deckItemContainer}>
                       <View style={{ flex: 1, marginRight: 10 }}>
                         <Text
                           style={{
@@ -600,6 +596,14 @@ const styles = StyleSheet.create({
   modalActions: {
     flexDirection: "row",
     gap: 12,
+  },
+  deckItemContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 10,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e5e7eb",
   },
   modalButton: {
     flex: 1,
