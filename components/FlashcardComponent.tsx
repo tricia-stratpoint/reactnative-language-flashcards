@@ -115,6 +115,10 @@ export default function FlashcardComponent({
         }).start(() => {
           panAnimation.setValue({ x: 0, y: 0 });
           onSwipe(difficulty);
+
+          AccessibilityInfo.announceForAccessibility(
+            `Rated flashcard difficulty as ${difficulty}`,
+          );
         });
       } else {
         Animated.spring(panAnimation, {
@@ -198,6 +202,7 @@ export default function FlashcardComponent({
                 <Text
                   style={styles.cardText}
                   accessible={true}
+                  accessibilityRole="text"
                   accessibilityLabel={card.front}
                 >
                   {card.front}
@@ -235,9 +240,9 @@ export default function FlashcardComponent({
                     accessibilityRole="button"
                     accessibilityLabel="Play pronunciation audio"
                     accessibilityHint="Double tap to hear the pronunciation."
-                    style={{ padding: 12 }}
+                    style={styles.audioButton}
                   >
-                    <Volume2 size={24} color={Colors.gray} />
+                    <Volume2 size={32} color={Colors.gray} />
                   </TouchableOpacity>
                 </View>
 
@@ -321,7 +326,7 @@ const styles = StyleSheet.create({
   cardText: {
     fontSize: 28,
     fontWeight: "600",
-    color: "#1f2937",
+    color: Colors.black,
     textAlign: "center",
     lineHeight: 36,
   },
@@ -337,6 +342,13 @@ const styles = StyleSheet.create({
     top: 30,
     right: 30,
     zIndex: 20,
+  },
+  audioButton: {
+    padding: 16,
+    minWidth: 44,
+    minHeight: 44,
+    justifyContent: "center",
+    alignItems: "center",
   },
   swipeHint: {
     position: "absolute",
