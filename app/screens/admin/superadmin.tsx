@@ -42,7 +42,7 @@ export default function SuperAdminPanel() {
     action: "promote" | "demote";
   } | null>(null);
   const [activeTab, setActiveTab] = useState<"moderators" | "decks">(
-    "moderators"
+    "moderators",
   );
   const [pendingDecks, setPendingDecks] = useState<CommunityDeck[]>([]);
   const [liveDecks, setLiveDecks] = useState<CommunityDeck[]>([]);
@@ -96,7 +96,7 @@ export default function SuperAdminPanel() {
           console.error("Error fetching users:", error);
           setUsers([]);
           setLoading(false);
-        }
+        },
       );
 
     return () => unsubscribeUsers();
@@ -127,7 +127,7 @@ export default function SuperAdminPanel() {
           console.error("Error fetching decks:", error);
           setPendingDecks([]);
           setLiveDecks([]);
-        }
+        },
       );
 
     return () => unsubscribeDecks();
@@ -226,6 +226,11 @@ export default function SuperAdminPanel() {
                 data={users}
                 keyExtractor={(item) => item.uid}
                 contentContainerStyle={{ paddingBottom: 40 }}
+                removeClippedSubviews={true}
+                maxToRenderPerBatch={10}
+                windowSize={5}
+                initialNumToRender={10}
+                updateCellsBatchingPeriod={50}
                 renderItem={({ item }) => (
                   <View style={styles.userCard}>
                     <Text style={styles.username}>{item.username}</Text>
