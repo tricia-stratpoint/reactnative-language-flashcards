@@ -8,6 +8,7 @@ import {
   Animated,
   PanResponder,
   Platform,
+  AccessibilityInfo,
 } from "react-native";
 import FlipCard from "react-native-flip-card";
 import { LinearGradient } from "expo-linear-gradient";
@@ -149,7 +150,19 @@ export default function FlashcardComponent({
     }
   };
 
-  const handleFlip = () => setIsFlipped((prev) => !prev);
+  const handleFlip = () => {
+    setIsFlipped((prev) => {
+      const newState = !prev;
+
+      setTimeout(() => {
+        AccessibilityInfo.announceForAccessibility(
+          newState ? `Answer: ${card.back}` : `Question: ${card.front}`,
+        );
+      }, 300);
+
+      return newState;
+    });
+  };
 
   const getDifficultyColor = (difficulty: "good" | "again") =>
     difficulty === "good" ? Colors.tealDark : Colors.red;
@@ -173,13 +186,30 @@ export default function FlashcardComponent({
               activeOpacity={0.9}
               style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }]}
               onPress={handleFlip}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Flashcard front. ${card.front}`}
+              accessibilityHint="Double tap to reveal the answer."
             >
               <LinearGradient
                 colors={["#fff", "#f8fafc"]}
                 style={styles.cardGradient}
               >
-                <Text style={styles.cardText}>{card.front}</Text>
-                <Text style={styles.tapHint}>Tap to reveal</Text>
+                <Text
+                  style={styles.cardText}
+                  accessible={true}
+                  accessibilityLabel={card.front}
+                >
+                  {card.front}
+                </Text>
+
+                <Text
+                  style={styles.tapHint}
+                  accessible={false}
+                  importantForAccessibility="no"
+                >
+                  Tap to reveal
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
 
@@ -188,18 +218,44 @@ export default function FlashcardComponent({
               activeOpacity={0.9}
               style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }]}
               onPress={handleFlip}
+              accessible={true}
+              accessibilityRole="button"
+              accessibilityLabel={`Flashcard back. ${card.back}`}
+              accessibilityHint="Double tap to flip back to the question."
             >
               <LinearGradient
                 colors={["#fff", "#f8fafc"]}
                 style={styles.cardGradient}
               >
                 <View style={styles.audioButtonContainer}>
-                  <TouchableOpacity onPress={speakText} testID="audio-button">
+                  <TouchableOpacity
+                    onPress={speakText}
+                    testID="audio-button"
+                    accessible={true}
+                    accessibilityRole="button"
+                    accessibilityLabel="Play pronunciation audio"
+                    accessibilityHint="Double tap to hear the pronunciation."
+                    style={{ padding: 12 }}
+                  >
                     <Volume2 size={24} color={Colors.gray} />
                   </TouchableOpacity>
                 </View>
-                <Text style={styles.cardText}>{card.back}</Text>
-                <Text style={styles.swipeHint}>Swipe to rate difficulty</Text>
+
+                <Text
+                  style={styles.cardText}
+                  accessible={true}
+                  accessibilityLabel={card.back}
+                >
+                  {card.back}
+                </Text>
+
+                <Text
+                  style={styles.swipeHint}
+                  accessible={false}
+                  importantForAccessibility="no"
+                >
+                  Swipe to rate difficulty
+                </Text>
               </LinearGradient>
             </TouchableOpacity>
           </FlipCard>
@@ -228,6 +284,11 @@ export default function FlashcardComponent({
               },
             ]}
             onPress={() => onSwipe(level as "again" | "good")}
+            accessible={true}
+            accessibilityRole="button"
+            accessibilityLabel={`${level} difficulty`}
+            accessibilityHint={`Rates this flashcard difficulty as ${level}.`}
+            accessibilityValue={{ text: level }}
           >
             <Text style={styles.indicatorText}>{level}</Text>
           </TouchableOpacity>
@@ -299,9 +360,10 @@ const styles = StyleSheet.create({
   },
   indicator: {
     paddingHorizontal: 16,
-    paddingVertical: 8,
+    paddingVertical: 12,
     borderRadius: 20,
     alignItems: "center",
+    minHeight: 44,
   },
   indicatorText: {
     color: "#ffffff",
