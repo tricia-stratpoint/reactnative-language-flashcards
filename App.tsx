@@ -17,6 +17,7 @@ import {
 } from "./app/utils/notifications";
 import messaging from "@react-native-firebase/messaging";
 import notifee from "@notifee/react-native";
+import ErrorBoundary from "./components/ErrorBoundary";
 
 const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
@@ -99,13 +100,15 @@ export default function App() {
         backgroundColor="transparent"
       />
 
-      <QueryClientProvider client={queryClient}>
-        <GestureHandlerRootView style={styles.container}>
-          <NavigationContainer>
-            <AppNavigator initialRouteName={initialRoute} />
-          </NavigationContainer>
-        </GestureHandlerRootView>
-      </QueryClientProvider>
+      <ErrorBoundary>
+        <QueryClientProvider client={queryClient}>
+          <GestureHandlerRootView style={styles.container}>
+            <NavigationContainer>
+              <AppNavigator initialRouteName={initialRoute} />
+            </NavigationContainer>
+          </GestureHandlerRootView>
+        </QueryClientProvider>
+      </ErrorBoundary>
     </>
   );
 }
