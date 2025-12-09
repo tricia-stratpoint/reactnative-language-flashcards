@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo, memo } from "react";
 import {
   View,
   Text,
@@ -37,7 +37,76 @@ type DecksScreenNavigationProp = NativeStackNavigationProp<
   "DeckDetails"
 >;
 
-export default function DecksScreen() {
+const DeckCard = memo(function DeckCard({
+  deck,
+  stats,
+  deckColor,
+  offline,
+  onPress,
+}: {
+  deck: any;
+  stats: { total: number; new: number; due: number };
+  deckColor: string;
+  offline: boolean;
+  onPress: () => void;
+}) {
+  return (
+    <View style={[styles.deckCard, { borderLeftColor: deckColor }]}>
+      <View style={styles.deckHeader}>
+        <View style={styles.deckInfo}>
+          <Text style={styles.deckName}>{deck.name}</Text>
+          <Text style={styles.deckDescription}>{deck.description || ""}</Text>
+        </View>
+        <BookOpen size={24} color={deckColor} />
+      </View>
+
+      <View style={styles.deckStats}>
+        <View style={styles.statItem}>
+          <Text style={styles.statNumber}>{stats.total}</Text>
+          <Text style={styles.statLabel}>Total</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={[styles.statNumber, { color: Colors.blue }]}>
+            {stats.new}
+          </Text>
+          <Text style={styles.statLabel}>New</Text>
+        </View>
+        <View style={styles.statItem}>
+          <Text style={[styles.statNumber, { color: Colors.red }]}>
+            {stats.due}
+          </Text>
+          <Text style={styles.statLabel}>Due</Text>
+        </View>
+      </View>
+
+      <View style={styles.deckActions}>
+        <TouchableOpacity
+          style={[styles.actionButton, { backgroundColor: deckColor }]}
+          onPress={onPress}
+        >
+          <Text style={styles.actionButtonText}>
+            {deck.type === "community" || deck.language !== "custom"
+              ? "View Deck"
+              : "Manage Deck"}
+          </Text>
+        </TouchableOpacity>
+
+        {offline && (
+          <View
+            style={[styles.downloadedContainer, { borderColor: deckColor }]}
+          >
+            <Check size={18} color={deckColor} />
+            <Text style={[styles.downloadedText, { color: deckColor }]}>
+              Downloaded
+            </Text>
+          </View>
+        )}
+      </View>
+    </View>
+  );
+});
+
+function DecksScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<DecksScreenNavigationProp>();
   const { decks, cards, createDeck, isLoading } = useFlashcardStore();
@@ -141,48 +210,42 @@ export default function DecksScreen() {
     return { total: cardsToUse.length, new: newCards, due: dueCards };
   };
 
-  type RenderDeck = {
-    id: string;
-    name: string;
-    description?: string;
-    color?: string;
-    language: string;
-    type: "user" | "community";
-    originalDeck: Deck | CommunityDeck;
-  };
-
-  const combinedDecks: RenderDeck[] = [
-    ...communityDecks
-      .filter((d) => d.status === "approved")
-      .map((d) => ({
+  const combinedDecks = useMemo(() => {
+    return [
+      ...communityDecks
+        .filter((d) => d.status === "approved")
+        .map((d) => ({
+          id: d.id,
+          name: d.title,
+          description: d.description,
+          color: d.color,
+          language: "community",
+          type: "community" as const,
+          originalDeck: d,
+        })),
+      ...decks.map((d) => ({
         id: d.id,
-        name: d.title,
+        name: d.name,
         description: d.description,
         color: d.color,
-        language: "community",
-        type: "community" as const,
+        language: d.language || "custom",
+        type: "user" as const,
         originalDeck: d,
       })),
-    ...decks.map((d) => ({
-      id: d.id,
-      name: d.name,
-      description: d.description,
-      color: d.color,
-      language: d.language || "custom",
-      type: "user" as const,
-      originalDeck: d,
-    })),
-  ];
+    ];
+  }, [communityDecks, decks]);
 
-  const sortedDecks = combinedDecks.sort((a, b) => {
+  const sortedDecks = useMemo(() => {
     const order: Record<string, number> = {
       spanish: 1,
       french: 2,
       community: 3,
       custom: 4,
     };
-    return (order[a.language] ?? 4) - (order[b.language] ?? 4);
-  });
+    return [...combinedDecks].sort(
+      (a, b) => (order[a.language] ?? 4) - (order[b.language] ?? 4),
+    );
+  }, [combinedDecks]);
 
   if (isLoading) {
     return (
@@ -223,13 +286,13 @@ export default function DecksScreen() {
               </Text>
             </View>
           ) : (
-            sortedDecks.map((deck: RenderDeck) => {
+            sortedDecks.map((deck) => {
               const isCommunity = deck.type === "community";
               const stats = isCommunity
                 ? getCommunityDeckStats(deck.originalDeck as CommunityDeck)
                 : getDeckStats(
                     deck.id,
-                    cards.filter((c) => c.deckId === deck.id)
+                    cards.filter((c) => c.deckId === deck.id),
                   );
 
               const deckColor =
@@ -241,77 +304,23 @@ export default function DecksScreen() {
                       description: deck.originalDeck.description || "",
                     } as Deck));
 
+              const offline = offlineDecks.includes(deck.id);
+
+              const handlePress = () =>
+                navigation.navigate("DeckDetails", {
+                  deckId: deck.id,
+                  language: isCommunity ? "community" : deck.language,
+                });
+
               return (
-                <View
+                <DeckCard
                   key={deck.id}
-                  style={[styles.deckCard, { borderLeftColor: deckColor }]}
-                >
-                  <View style={styles.deckHeader}>
-                    <View style={styles.deckInfo}>
-                      <Text style={styles.deckName}>{deck.name}</Text>
-                      <Text style={styles.deckDescription}>
-                        {deck.description || ""}
-                      </Text>
-                    </View>
-                    <BookOpen size={24} color={deckColor} />
-                  </View>
-
-                  <View style={styles.deckStats}>
-                    <View style={styles.statItem}>
-                      <Text style={styles.statNumber}>{stats.total}</Text>
-                      <Text style={styles.statLabel}>Total</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: Colors.blue }]}>
-                        {stats.new}
-                      </Text>
-                      <Text style={styles.statLabel}>New</Text>
-                    </View>
-                    <View style={styles.statItem}>
-                      <Text style={[styles.statNumber, { color: Colors.red }]}>
-                        {stats.due}
-                      </Text>
-                      <Text style={styles.statLabel}>Due</Text>
-                    </View>
-                  </View>
-
-                  <View style={styles.deckActions}>
-                    <TouchableOpacity
-                      style={[
-                        styles.actionButton,
-                        { backgroundColor: deckColor },
-                      ]}
-                      onPress={() =>
-                        navigation.navigate("DeckDetails", {
-                          deckId: deck.id,
-                          language: isCommunity ? "community" : deck.language,
-                        })
-                      }
-                    >
-                      <Text style={styles.actionButtonText}>
-                        {isCommunity || deck.language !== "custom"
-                          ? "View Deck"
-                          : "Manage Deck"}
-                      </Text>
-                    </TouchableOpacity>
-
-                    {offlineDecks.includes(deck.id) && (
-                      <View
-                        style={[
-                          styles.downloadedContainer,
-                          { borderColor: deckColor },
-                        ]}
-                      >
-                        <Check size={18} color={deckColor} />
-                        <Text
-                          style={[styles.downloadedText, { color: deckColor }]}
-                        >
-                          Downloaded
-                        </Text>
-                      </View>
-                    )}
-                  </View>
-                </View>
+                  deck={deck}
+                  stats={stats}
+                  deckColor={deckColor}
+                  offline={offline}
+                  onPress={handlePress}
+                />
               );
             })
           )}
@@ -376,6 +385,8 @@ export default function DecksScreen() {
     </View>
   );
 }
+
+export default memo(DecksScreen);
 
 const styles = StyleSheet.create({
   container: {
