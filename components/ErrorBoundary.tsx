@@ -1,5 +1,6 @@
 import React from "react";
 import { View, Text, Button, StyleSheet } from "react-native";
+import crashlytics from "@react-native-firebase/crashlytics";
 
 type Props = {
   children: React.ReactNode;
@@ -21,8 +22,8 @@ export default class ErrorBoundary extends React.Component<Props, State> {
   }
 
   componentDidCatch(error: Error, info: any) {
-    console.log("ERROR BOUNDARY CAUGHT:", error, info);
-    // crashlytics
+    crashlytics().log("React Error Boundary caught an error");
+    crashlytics().recordError(error);
   }
 
   render() {

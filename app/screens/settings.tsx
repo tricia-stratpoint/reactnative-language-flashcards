@@ -21,6 +21,7 @@ import {
 } from "../utils/notifications";
 import { getOfflineDecks, deleteOfflineDeck } from "../utils/offlineStorage";
 import { deleteSecureItem } from "@/app/utils/secureStore";
+import crashlytics from "@react-native-firebase/crashlytics";
 
 export default function SettingsScreen() {
   const navigation = useNavigation();
@@ -194,6 +195,27 @@ export default function SettingsScreen() {
                   <Text style={styles.settingTitle}>Test Notification</Text>
                   <Text style={styles.settingDescription}>
                     Tap to send a local notification
+                  </Text>
+                </View>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.settingItem}
+              onPress={() => crashlytics().crash()}
+            >
+              <View style={styles.settingLeft}>
+                <View
+                  style={[styles.settingIcon, { backgroundColor: Colors.red }]}
+                >
+                  <Text style={{ color: Colors.white, fontWeight: "bold" }}>
+                    !
+                  </Text>
+                </View>
+                <View>
+                  <Text style={styles.settingTitle}>Test Crash</Text>
+                  <Text style={styles.settingDescription}>
+                    Trigger a test crash to verify Crashlytics
                   </Text>
                 </View>
               </View>

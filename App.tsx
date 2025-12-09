@@ -18,6 +18,7 @@ import {
 import messaging from "@react-native-firebase/messaging";
 import notifee from "@notifee/react-native";
 import ErrorBoundary from "./components/ErrorBoundary";
+import crashlytics from "@react-native-firebase/crashlytics";
 
 const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
@@ -34,6 +35,11 @@ export default function App() {
   const [initialRoute, setInitialRoute] = useState<"Login" | "MainTabs">(
     "Login",
   );
+
+  useEffect(() => {
+    crashlytics().setCrashlyticsCollectionEnabled(true);
+    crashlytics().log("App mounted");
+  }, []);
 
   useEffect(() => {
     const checkLogin = async () => {
