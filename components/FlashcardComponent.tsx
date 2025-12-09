@@ -1,4 +1,4 @@
-import React, { useRef, useEffect, useState } from "react";
+import React, { useRef, useEffect, useState, memo, useCallback } from "react";
 import {
   View,
   Text,
@@ -27,7 +27,7 @@ interface FlashcardComponentProps {
   onSwipe: (difficulty: "good" | "again") => void;
 }
 
-export default function FlashcardComponent({
+export default memo(function FlashcardComponent({
   card,
   onSwipe,
 }: FlashcardComponentProps) {
@@ -80,54 +80,56 @@ export default function FlashcardComponent({
     ],
   };
 
-  const panResponder = PanResponder.create({
-    onStartShouldSetPanResponder: () => true,
-    onMoveShouldSetPanResponder: () => true,
-    onPanResponderGrant: () => {
-      Animated.spring(scaleAnimation, {
-        toValue: 0.95,
-        useNativeDriver: true,
-      }).start();
-    },
-    onPanResponderMove: (_, gestureState) => {
-      panAnimation.setValue({ x: gestureState.dx, y: gestureState.dy });
-    },
-    onPanResponderRelease: (_, gestureState) => {
-      const { dx, vx, dy } = gestureState;
-
-      Animated.spring(scaleAnimation, {
-        toValue: 1,
-        useNativeDriver: true,
-      }).start();
-
-      const swipeThreshold = 100;
-      const velocityThreshold = 500;
-
-      if (Math.abs(dx) > swipeThreshold || Math.abs(vx) > velocityThreshold) {
-        const direction = dx > 0 ? "right" : "left";
-        const toValueX = direction === "right" ? screenWidth : -screenWidth;
-        const difficulty = direction === "right" ? "good" : "again";
-
-        Animated.timing(panAnimation, {
-          toValue: { x: toValueX, y: dy },
-          duration: 250,
-          useNativeDriver: true,
-        }).start(() => {
-          panAnimation.setValue({ x: 0, y: 0 });
-          onSwipe(difficulty);
-
-          AccessibilityInfo.announceForAccessibility(
-            `Rated flashcard difficulty as ${difficulty}`,
-          );
-        });
-      } else {
-        Animated.spring(panAnimation, {
-          toValue: { x: 0, y: 0 },
+  const panResponder = useRef(
+    PanResponder.create({
+      onStartShouldSetPanResponder: () => true,
+      onMoveShouldSetPanResponder: () => true,
+      onPanResponderGrant: () => {
+        Animated.spring(scaleAnimation, {
+          toValue: 0.95,
           useNativeDriver: true,
         }).start();
-      }
-    },
-  });
+      },
+      onPanResponderMove: (_, gestureState) => {
+        panAnimation.setValue({ x: gestureState.dx, y: gestureState.dy });
+      },
+      onPanResponderRelease: (_, gestureState) => {
+        const { dx, vx, dy } = gestureState;
+
+        Animated.spring(scaleAnimation, {
+          toValue: 1,
+          useNativeDriver: true,
+        }).start();
+
+        const swipeThreshold = 100;
+        const velocityThreshold = 500;
+
+        if (Math.abs(dx) > swipeThreshold || Math.abs(vx) > velocityThreshold) {
+          const direction = dx > 0 ? "right" : "left";
+          const toValueX = direction === "right" ? screenWidth : -screenWidth;
+          const difficulty = direction === "right" ? "good" : "again";
+
+          Animated.timing(panAnimation, {
+            toValue: { x: toValueX, y: dy },
+            duration: 250,
+            useNativeDriver: true,
+          }).start(() => {
+            panAnimation.setValue({ x: 0, y: 0 });
+            onSwipe(difficulty);
+
+            AccessibilityInfo.announceForAccessibility(
+              `Rated flashcard difficulty as ${difficulty}`,
+            );
+          });
+        } else {
+          Animated.spring(panAnimation, {
+            toValue: { x: 0, y: 0 },
+            useNativeDriver: true,
+          }).start();
+        }
+      },
+    }),
+  ).current;
 
   useEffect(() => {
     const setupTts = async () => {
@@ -143,7 +145,7 @@ export default function FlashcardComponent({
     setupTts();
   }, []);
 
-  const speakText = async () => {
+  const speakText = useCallback(async () => {
     try {
       if (Platform.OS === "android") await Tts.stop();
       const langCode = LANGUAGE_CODES[card.language] || "en-US";
@@ -152,9 +154,9 @@ export default function FlashcardComponent({
     } catch (err) {
       console.warn("TTS speak error:", err);
     }
-  };
+  }, [card.back, card.language]);
 
-  const handleFlip = () => {
+  const handleFlip = useCallback(() => {
     setIsFlipped((prev) => {
       const newState = !prev;
 
@@ -166,10 +168,13 @@ export default function FlashcardComponent({
 
       return newState;
     });
-  };
+  }, [card.back, card.front]);
 
-  const getDifficultyColor = (difficulty: "good" | "again") =>
-    difficulty === "good" ? Colors.tealDark : Colors.red;
+  const getDifficultyColor = useCallback(
+    (difficulty: "good" | "again") =>
+      difficulty === "good" ? Colors.tealDark : Colors.red,
+    [],
+  );
 
   return (
     <View style={styles.container}>
@@ -301,7 +306,7 @@ export default function FlashcardComponent({
       </View>
     </View>
   );
-}
+});
 
 const styles = StyleSheet.create({
   container: {
