@@ -19,6 +19,8 @@ import messaging from "@react-native-firebase/messaging";
 import notifee from "@notifee/react-native";
 import ErrorBoundary from "./components/ErrorBoundary";
 import crashlytics from "@react-native-firebase/crashlytics";
+import analytics from "@react-native-firebase/analytics";
+import perf from "@react-native-firebase/perf";
 
 const queryClient = new QueryClient();
 SplashScreen.preventAutoHideAsync();
@@ -38,7 +40,8 @@ export default function App() {
 
   useEffect(() => {
     crashlytics().setCrashlyticsCollectionEnabled(true);
-    crashlytics().log("App mounted");
+    analytics().logAppOpen();
+    perf().setPerformanceCollectionEnabled(true);
   }, []);
 
   useEffect(() => {
@@ -109,7 +112,16 @@ export default function App() {
       <ErrorBoundary>
         <QueryClientProvider client={queryClient}>
           <GestureHandlerRootView style={styles.container}>
-            <NavigationContainer>
+            <NavigationContainer
+              onStateChange={(state) => {
+                if (!state) return;
+                const route = state.routes[state.index].name;
+                analytics().logScreenView({
+                  screen_name: route,
+                  screen_class: route,
+                });
+              }}
+            >
               <AppNavigator initialRouteName={initialRoute} />
             </NavigationContainer>
           </GestureHandlerRootView>
