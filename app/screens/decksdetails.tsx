@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback, useMemo } from "react";
 import {
   View,
   Text,
@@ -18,6 +18,11 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import { saveDeckOffline, isDeckOffline } from "../utils/offlineStorage";
 import { useAllCommunityDecks } from "@/hooks/community-store";
 import type { CommunityDeck, Deck } from "@/types/flashcard";
+
+const isDeck = (d: Deck | CommunityDeck | null | undefined): d is Deck => {
+  if (!d || typeof d !== "object") return false;
+  return "language" in d && "name" in d;
+};
 
 const DECK_COLORS = [
   Colors.red,
@@ -70,24 +75,26 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
   const getDeckName = (d: Deck | CommunityDeck) =>
     isDeck(d) ? d.name : d.title;
 
-  useEffect(() => {
-    if (!deck) return;
-
-    let deckCardsData: Flashcard[] = [];
+  const rawDeckCards = useMemo(() => {
+    if (!deck) return [];
 
     if (!isDeck(deck)) {
       const communityDeck = communityDecks.find((d) => d.id === deckId);
-      deckCardsData = communityDeck?.cards ?? [];
-    } else {
-      deckCardsData = cards.filter((c) => c.deckId === deckId);
+      return communityDeck?.cards ?? [];
     }
 
-    setDeckCards(
-      deckCardsData.sort(
-        (a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0),
-      ),
+    return cards.filter((c) => c.deckId === deckId);
+  }, [deck, cards, deckId, communityDecks]);
+
+  const sortedDeckCards = useMemo(() => {
+    return [...rawDeckCards].sort(
+      (a, b) => Number(a.createdAt ?? 0) - Number(b.createdAt ?? 0),
     );
-  }, [cards, deckId, deck, communityDecks]);
+  }, [rawDeckCards]);
+
+  useEffect(() => {
+    setDeckCards(sortedDeckCards);
+  }, [sortedDeckCards]);
 
   useEffect(() => {
     if (deck) {
@@ -97,29 +104,11 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
     }
   }, [deck]);
 
-  const isDeck = (d: Deck | CommunityDeck | null | undefined): d is Deck => {
-    if (!d || typeof d !== "object") return false;
-    return "language" in d && "name" in d;
-  };
-
   const isGlobalDeck =
     isDeck(deck) && (deck.language === "spanish" || deck.language === "french");
 
   const isCustomDeck = isDeck(deck) && !isGlobalDeck;
   const isUserDeck = isCustomDeck;
-
-  useEffect(() => {
-    if (!deck) return;
-
-    const currentDeck = deck;
-
-    (async () => {
-      const downloaded = await isDeckOffline(currentDeck.id, isUserDeck);
-      setIsDownloaded(downloaded);
-    })();
-  }, [deck, isUserDeck]);
-
-  if (!deck) return null;
 
   const handleAddCard = async () => {
     if (!cardFront.trim() || !cardBack.trim() || !deck) return;
@@ -154,24 +143,43 @@ export default function DeckDetailsScreen({ route, navigation }: Props) {
 
   const handleEditDeck = () => setShowEditDeck(true);
 
-  const handleEditCard = (cardId: string) => {
-    const card = deckCards.find((c) => c.id === cardId);
-    if (!card) return;
-    setEditingCard(card);
-    setCardFront(card.front);
-    setCardBack(card.back);
-  };
+  const handleEditCard = useCallback(
+    (cardId: string) => {
+      const card = deckCards.find((c) => c.id === cardId);
+      if (!card) return;
+      setEditingCard(card);
+      setCardFront(card.front);
+      setCardBack(card.back);
+    },
+    [deckCards],
+  );
 
-  const handleDeleteCard = async (cardId: string) => {
-    if (!deck || !isCustomDeck) return;
-    await deleteCard(deck.id, cardId);
-  };
+  const handleDeleteCard = useCallback(
+    async (cardId: string) => {
+      if (!deck || !isCustomDeck) return;
+      await deleteCard(deck.id, cardId);
+    },
+    [deck, isCustomDeck, deleteCard],
+  );
 
   const handleDeleteDeck = async () => {
     if (!deck || !isCustomDeck) return;
     await deleteDeck(deck.id);
     navigation.goBack();
   };
+
+  useEffect(() => {
+    if (!deck) return;
+
+    const currentDeck = deck;
+
+    (async () => {
+      const downloaded = await isDeckOffline(currentDeck.id, isUserDeck);
+      setIsDownloaded(downloaded);
+    })();
+  }, [deck, isUserDeck]);
+
+  if (!deck) return null;
 
   return (
     <SafeAreaView style={styles.safeArea}>
