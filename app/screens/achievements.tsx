@@ -1,4 +1,4 @@
-import React from "react";
+import React, { memo, useMemo } from "react";
 import {
   View,
   Text,
@@ -13,24 +13,11 @@ import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
 import { Achievement } from "@/types/flashcard";
 
-export default function AchievementsScreen() {
+function AchievementsScreen() {
   const insets = useSafeAreaInsets();
   const { stats, isLoading } = useFlashcardStore();
 
-  if (isLoading) {
-    return (
-      <View style={[styles.container, { paddingTop: insets.top }]}>
-        <LinearGradient
-          colors={[Colors.blue, Colors.greenMint]}
-          style={[styles.gradient, styles.loadingGradient]}
-        >
-          <ActivityIndicator size={70} color={Colors.white} />
-        </LinearGradient>
-      </View>
-    );
-  }
-
-  const getStreakDays = () => {
+  const getStreakDays = useMemo(() => {
     const today = new Date();
     const lastStudy = stats.lastStudyDate
       ? new Date(stats.lastStudyDate)
@@ -45,7 +32,20 @@ export default function AchievementsScreen() {
       return stats.studyStreak;
     }
     return 0;
-  };
+  }, [stats.lastStudyDate, stats.studyStreak]);
+
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { paddingTop: insets.top }]}>
+        <LinearGradient
+          colors={[Colors.blue, Colors.greenMint]}
+          style={[styles.gradient, styles.loadingGradient]}
+        >
+          <ActivityIndicator size={70} color={Colors.white} />
+        </LinearGradient>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -68,7 +68,7 @@ export default function AchievementsScreen() {
 
             <View style={styles.statCard}>
               <Calendar size={24} color={Colors.red} />
-              <Text style={styles.statNumber}>{getStreakDays()}</Text>
+              <Text style={styles.statNumber}>{getStreakDays}</Text>
               <Text style={styles.statLabel}>Day Streak</Text>
             </View>
 
@@ -89,7 +89,7 @@ export default function AchievementsScreen() {
               const isUnlocked = achievement.unlockedAt !== null;
               const progress = Math.min(
                 achievement.progress / achievement.target,
-                1
+                1,
               );
 
               return (
@@ -162,10 +162,10 @@ export default function AchievementsScreen() {
               {stats.totalCardsStudied === 0
                 ? "Start your learning journey by studying your first flashcard!"
                 : stats.totalCardsStudied < 10
-                ? "Great start! Keep studying to unlock more achievements."
-                : stats.totalCardsStudied < 50
-                ? "You're building momentum! Consistency is key to mastering new knowledge."
-                : "Amazing progress! You're becoming a learning machine!"}
+                  ? "Great start! Keep studying to unlock more achievements."
+                  : stats.totalCardsStudied < 50
+                    ? "You're building momentum! Consistency is key to mastering new knowledge."
+                    : "Amazing progress! You're becoming a learning machine!"}
             </Text>
           </View>
         </ScrollView>
@@ -173,6 +173,8 @@ export default function AchievementsScreen() {
     </View>
   );
 }
+
+export default memo(AchievementsScreen);
 
 const styles = StyleSheet.create({
   container: {
