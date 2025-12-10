@@ -47,6 +47,15 @@ const DEFAULT_ACHIEVEMENTS: UserStats["achievements"] = [
   },
 ];
 
+/**
+ * Converts a Firestore Timestamp, Date, or number into milliseconds since epoch.
+ *
+ * @param {FirebaseFirestoreTypes.Timestamp | number | Date | null | undefined} ts - The timestamp to convert
+ * @returns {number} Milliseconds since epoch. Defaults to current time if input is null/undefined.
+ *
+ * @example
+ * const millis = toMillis(firestoreTimestamp);
+ */
 const toMillis = (
   ts?: FirebaseFirestoreTypes.Timestamp | number | Date | null,
 ) => {
@@ -57,6 +66,15 @@ const toMillis = (
 };
 
 let unsubscribers: (() => void)[] = [];
+
+/**
+ * Calls all stored unsubscribe functions and clears the list.
+ *
+ * Used to clean up Firestore listeners when the user signs out or switches accounts.
+ *
+ * @example
+ * clearAllListeners();
+ */
 export const clearAllListeners = () => {
   unsubscribers.forEach((u) => u());
   unsubscribers = [];
@@ -173,6 +191,23 @@ interface FlashcardState {
   studyCard: (cardId: string, isPerfectSession: boolean) => void;
 }
 
+/**
+ * Zustand store for managing flashcards, decks, user stats, and user role.
+ *
+ * Provides actions for:
+ * - Loading decks and cards
+ * - Creating, updating, and deleting decks/cards
+ * - Fetching and updating user stats and achievements
+ * - Tracking study progress and streaks
+ *
+ * Usage:
+ * ```ts
+ * const decks = useFlashcardStore((state) => state.decks);
+ * const addCard = useFlashcardStore((state) => state.addCard);
+ * ```
+ *
+ * @returns {FlashcardState} The store state and actions
+ */
 export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   decks: [],
   cards: [],
@@ -537,6 +572,17 @@ export const useFlashcardStore = create<FlashcardState>((set, get) => ({
   },
 }));
 
+/**
+ * Resets the current user's flashcard progress and achievements to defaults.
+ *
+ * Updates both Firestore and the local store.
+ *
+ * @async
+ * @returns {Promise<void>}
+ *
+ * @example
+ * await resetUserProgress();
+ */
 export const resetUserProgress = async () => {
   const user = auth().currentUser;
   if (!user) return;
