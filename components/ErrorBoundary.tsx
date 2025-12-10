@@ -11,6 +11,28 @@ type State = {
   error?: Error;
 };
 
+/**
+ * A React Error Boundary component for catching runtime errors in child components.
+ *
+ * This component:
+ * - Catches JavaScript errors anywhere in its child component tree
+ * - Logs the errors to Firebase Crashlytics
+ * - Displays a fallback UI with the error message
+ * - Provides a "Reload App" button to reset the error state
+ *
+ * Usage:
+ * ```tsx
+ * <ErrorBoundary>
+ *   <YourApp />
+ * </ErrorBoundary>
+ * ```
+ *
+ * @component
+ * @param {Object} props - Component props
+ * @param {React.ReactNode} props.children - Child components to render
+ * @returns {React.ReactNode} The children if no error, or the fallback UI if an error occurred
+ */
+
 export default class ErrorBoundary extends React.Component<Props, State> {
   constructor(props: Props) {
     super(props);

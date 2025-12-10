@@ -27,6 +27,23 @@ interface FlashcardComponentProps {
   onSwipe: (difficulty: "good" | "again") => void;
 }
 
+/**
+ * Displays an interactive flashcard with flipping, swiping, TTS audio,
+ * and accessibility announcements. The card supports:
+ * - Flip animation (question <-> answer)
+ * - Swipe left/right to rate difficulty ("again" | "good")
+ * - Tap to flip
+ * - Text-to-speech pronunciation on the back side
+ *
+ * Includes advanced gesture handling, animated transforms, and accessible hints.
+ *
+ * @component
+ * @param {FlashcardComponentProps} props - Component props.
+ * @param {Flashcard} props.card - The flashcard data containing front, back, and language.
+ * @param {(difficulty: "good" | "again") => void} props.onSwipe - Callback when user rates the card.
+ * @returns {JSX.Element}
+ */
+
 export default memo(function FlashcardComponent({
   card,
   onSwipe,
