@@ -5,17 +5,25 @@ import {
   StyleSheet,
   TouchableOpacity,
   useWindowDimensions,
-  Animated,
-  PanResponder,
   Platform,
   AccessibilityInfo,
 } from "react-native";
 import FlipCard from "react-native-flip-card";
 import { LinearGradient } from "expo-linear-gradient";
-import { Flashcard } from "../types/flashcard";
+import { Flashcard } from "@/types/flashcard";
 import { Volume2 } from "lucide-react-native";
-import { Colors } from "../app/constants/colors";
+import { Colors } from "@/app/constants/colors";
 import Tts from "react-native-tts";
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  withTiming,
+  interpolate,
+  interpolateColor,
+  runOnJS,
+} from "react-native-reanimated";
+import { Gesture, GestureDetector } from "react-native-gesture-handler";
 
 const LANGUAGE_CODES: Record<Flashcard["language"], string> = {
   spanish: "es-ES",
@@ -28,22 +36,18 @@ interface FlashcardComponentProps {
 }
 
 /**
- * Displays an interactive flashcard with flipping, swiping, TTS audio,
- * and accessibility announcements. The card supports:
- * - Flip animation (question <-> answer)
- * - Swipe left/right to rate difficulty ("again" | "good")
- * - Tap to flip
- * - Text-to-speech pronunciation on the back side
+ * FlashcardComponent
  *
- * Includes advanced gesture handling, animated transforms, and accessible hints.
+ * Behavior preserved from original:
+ * - Tap front/back area flips the FlipCard component.
+ * - Swipe gestures operate only on the card area; bottom buttons do NOT trigger swipe.
+ * - TTS (audio button) remains on the back and functions as before.
+ * - Overlay color/opacity feedback for swipe preserved.
  *
- * @component
- * @param {FlashcardComponentProps} props - Component props.
- * @param {Flashcard} props.card - The flashcard data containing front, back, and language.
- * @param {(difficulty: "good" | "again") => void} props.onSwipe - Callback when user rates the card.
- * @returns {JSX.Element}
+ * Internals changed:
+ * - Pan gestures + transforms moved to Reanimated (native UI thread).
+ * - Animation primitives replaced with useSharedValue + useAnimatedStyle.
  */
-
 export default memo(function FlashcardComponent({
   card,
   onSwipe,
@@ -52,101 +56,105 @@ export default memo(function FlashcardComponent({
   const CARD_WIDTH = screenWidth - 40;
   const CARD_HEIGHT = screenHeight * 0.6;
 
-  const flipCardRef = useRef<FlipCard>(null);
+  // FlipCard ref + state
+  const flipCardRef = useRef<any>(null);
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const [panAnimation] = useState(new Animated.ValueXY());
-  const [scaleAnimation] = useState(new Animated.Value(1));
+  // Reanimated shared values (native thread)
+  const panX = useSharedValue(0);
+  const panY = useSharedValue(0);
+  const scale = useSharedValue(1);
 
-  const overlayOpacity = panAnimation.x.interpolate({
-    inputRange: [-screenWidth / 4, 0, screenWidth / 4],
-    outputRange: [0.8, 0, 0.8],
-    extrapolate: "clamp",
+  // Animated style for card transformation (translate, rotate, scale)
+  const animatedCardStyle = useAnimatedStyle(() => {
+    const rotateDeg = `${interpolate(
+      panX.value,
+      [-screenWidth / 2, 0, screenWidth / 2],
+      [-15, 0, 15],
+    )}deg`;
+
+    return {
+      transform: [
+        { translateX: panX.value },
+        { translateY: panY.value },
+        { scale: scale.value },
+        { rotate: rotateDeg },
+      ],
+    };
   });
 
-  const overlayColor = panAnimation.x.interpolate({
-    inputRange: [
-      -screenWidth,
-      -screenWidth / 3,
-      0,
-      screenWidth / 3,
-      screenWidth,
-    ],
-    outputRange: [
-      Colors.red,
-      Colors.red,
-      "transparent",
-      Colors.tealDark,
-      Colors.tealDark,
-    ],
-    extrapolate: "clamp",
+  // Animated overlay style (color + opacity) same feedback as original
+  const animatedOverlayStyle = useAnimatedStyle(() => {
+    return {
+      opacity: interpolate(
+        Math.abs(panX.value),
+        [0, screenWidth / 4],
+        [0, 0.8],
+      ),
+      backgroundColor: interpolateColor(
+        panX.value,
+        [-screenWidth, -screenWidth / 3, 0, screenWidth / 3, screenWidth],
+        [
+          Colors.red,
+          Colors.red,
+          "transparent",
+          Colors.tealDark,
+          Colors.tealDark,
+        ],
+      ),
+      borderRadius: 20,
+      position: "absolute" as const,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+    };
   });
 
-  const cardTransform = {
-    transform: [
-      { translateX: panAnimation.x },
-      { translateY: panAnimation.y },
-      { scale: scaleAnimation },
-      {
-        rotate: panAnimation.x.interpolate({
-          inputRange: [-screenWidth / 2, 0, screenWidth / 2],
-          outputRange: ["-15deg", "0deg", "15deg"],
-          extrapolate: "clamp",
-        }),
-      },
-    ],
-  };
+  // Gesture: pan only for the card area
+  const gesture = Gesture.Pan()
+    .onBegin(() => {
+      // press down scale
+      scale.value = withSpring(0.95);
+    })
+    .onUpdate((e) => {
+      panX.value = e.translationX;
+      panY.value = e.translationY;
+    })
+    .onEnd((e) => {
+      // revert press scale
+      scale.value = withSpring(1);
 
-  const panResponder = useRef(
-    PanResponder.create({
-      onStartShouldSetPanResponder: () => true,
-      onMoveShouldSetPanResponder: () => true,
-      onPanResponderGrant: () => {
-        Animated.spring(scaleAnimation, {
-          toValue: 0.95,
-          useNativeDriver: true,
-        }).start();
-      },
-      onPanResponderMove: (_, gestureState) => {
-        panAnimation.setValue({ x: gestureState.dx, y: gestureState.dy });
-      },
-      onPanResponderRelease: (_, gestureState) => {
-        const { dx, vx, dy } = gestureState;
+      const swipeThreshold = 100;
+      const velocityThreshold = 500;
+      const translationX = e.translationX;
+      const velocityX = e.velocityX;
+      const translationY = e.translationY;
 
-        Animated.spring(scaleAnimation, {
-          toValue: 1,
-          useNativeDriver: true,
-        }).start();
+      if (
+        Math.abs(translationX) > swipeThreshold ||
+        Math.abs(velocityX) > velocityThreshold
+      ) {
+        const direction = translationX > 0 ? "right" : "left";
+        const toX = direction === "right" ? screenWidth : -screenWidth;
+        const difficulty = direction === "right" ? "good" : "again";
 
-        const swipeThreshold = 100;
-        const velocityThreshold = 500;
-
-        if (Math.abs(dx) > swipeThreshold || Math.abs(vx) > velocityThreshold) {
-          const direction = dx > 0 ? "right" : "left";
-          const toValueX = direction === "right" ? screenWidth : -screenWidth;
-          const difficulty = direction === "right" ? "good" : "again";
-
-          Animated.timing(panAnimation, {
-            toValue: { x: toValueX, y: dy },
-            duration: 250,
-            useNativeDriver: true,
-          }).start(() => {
-            panAnimation.setValue({ x: 0, y: 0 });
-            onSwipe(difficulty);
-
-            AccessibilityInfo.announceForAccessibility(
-              `Rated flashcard difficulty as ${difficulty}`,
-            );
-          });
-        } else {
-          Animated.spring(panAnimation, {
-            toValue: { x: 0, y: 0 },
-            useNativeDriver: true,
-          }).start();
-        }
-      },
-    }),
-  ).current;
+        panX.value = withTiming(toX, { duration: 250 }, () => {
+          // reset values on completed animation
+          panX.value = 0;
+          panY.value = 0;
+          // call onSwipe and accessibility announcement on JS thread
+          runOnJS(onSwipe)(difficulty);
+          runOnJS(AccessibilityInfo.announceForAccessibility)(
+            `Rated flashcard difficulty as ${difficulty}`,
+          );
+        });
+      } else {
+        // snap back
+        panX.value = withSpring(0);
+        panY.value = withSpring(0);
+      }
+    });
 
   useEffect(() => {
     const setupTts = async () => {
@@ -195,122 +203,124 @@ export default memo(function FlashcardComponent({
 
   return (
     <View style={styles.container}>
-      <Animated.View style={cardTransform} {...panResponder.panHandlers}>
-        <View style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
-          <FlipCard
-            style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
-            flip={isFlipped}
-            friction={10}
-            perspective={1000}
-            clickable={false}
-            ref={flipCardRef}
-            flipHorizontal={true}
-            flipVertical={false}
-          >
-            {/* front */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }]}
-              onPress={handleFlip}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`Flashcard front. ${card.front}`}
-              accessibilityHint="Double tap to reveal the answer."
+      <GestureDetector gesture={gesture}>
+        <Animated.View style={animatedCardStyle}>
+          <View style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}>
+            <FlipCard
+              style={{ width: CARD_WIDTH, height: CARD_HEIGHT }}
+              flip={isFlipped}
+              friction={10}
+              perspective={1000}
+              clickable={false}
+              ref={flipCardRef}
+              flipHorizontal={true}
+              flipVertical={false}
             >
-              <LinearGradient
-                colors={["#fff", "#f8fafc"]}
-                style={styles.cardGradient}
+              {/* front */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[
+                  styles.card,
+                  { width: CARD_WIDTH, height: CARD_HEIGHT },
+                ]}
+                onPress={handleFlip}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Flashcard front. ${card.front}`}
+                accessibilityHint="Double tap to reveal the answer."
               >
-                <Text
-                  style={styles.cardText}
-                  accessible={true}
-                  accessibilityRole="text"
-                  accessibilityLabel={card.front}
+                <LinearGradient
+                  colors={["#fff", "#f8fafc"]}
+                  style={styles.cardGradient}
                 >
-                  {card.front}
-                </Text>
-
-                <Text
-                  style={styles.tapHint}
-                  accessible={false}
-                  importantForAccessibility="no"
-                >
-                  Tap to reveal
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-
-            {/* back */}
-            <TouchableOpacity
-              activeOpacity={0.9}
-              style={[styles.card, { width: CARD_WIDTH, height: CARD_HEIGHT }]}
-              onPress={handleFlip}
-              accessible={true}
-              accessibilityRole="button"
-              accessibilityLabel={`Flashcard back. ${card.back}`}
-              accessibilityHint="Double tap to flip back to the question."
-            >
-              <LinearGradient
-                colors={["#fff", "#f8fafc"]}
-                style={styles.cardGradient}
-              >
-                <View style={styles.audioButtonContainer}>
-                  <TouchableOpacity
-                    onPress={speakText}
-                    testID="audio-button"
+                  <Text
+                    style={styles.cardText}
                     accessible={true}
-                    accessibilityRole="button"
-                    accessibilityLabel="Play pronunciation audio"
-                    accessibilityHint="Double tap to hear the pronunciation."
-                    style={styles.audioButton}
+                    accessibilityRole="text"
+                    accessibilityLabel={card.front}
                   >
-                    <Volume2 size={32} color={Colors.gray} />
-                  </TouchableOpacity>
-                </View>
+                    {card.front}
+                  </Text>
 
-                <Text
-                  style={styles.cardText}
-                  accessible={true}
-                  accessibilityLabel={card.back}
+                  <Text
+                    style={styles.tapHint}
+                    accessible={false}
+                    importantForAccessibility="no"
+                  >
+                    Tap to reveal
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+
+              {/* back */}
+              <TouchableOpacity
+                activeOpacity={0.9}
+                style={[
+                  styles.card,
+                  { width: CARD_WIDTH, height: CARD_HEIGHT },
+                ]}
+                onPress={handleFlip}
+                accessible={true}
+                accessibilityRole="button"
+                accessibilityLabel={`Flashcard back. ${card.back}`}
+                accessibilityHint="Double tap to flip back to the question."
+              >
+                <LinearGradient
+                  colors={["#fff", "#f8fafc"]}
+                  style={styles.cardGradient}
                 >
-                  {card.back}
-                </Text>
+                  <View style={styles.audioButtonContainer}>
+                    <TouchableOpacity
+                      onPress={speakText}
+                      testID="audio-button"
+                      style={styles.audioButton}
+                      accessible={true}
+                      accessibilityRole="button"
+                      accessibilityLabel="Play pronunciation audio"
+                      accessibilityHint="Double tap to hear the pronunciation."
+                    >
+                      <Volume2 size={32} color={Colors.gray} />
+                    </TouchableOpacity>
+                  </View>
 
-                <Text
-                  style={styles.swipeHint}
-                  accessible={false}
-                  importantForAccessibility="no"
-                >
-                  Swipe to rate difficulty
-                </Text>
-              </LinearGradient>
-            </TouchableOpacity>
-          </FlipCard>
+                  <Text
+                    style={styles.cardText}
+                    accessible={true}
+                    accessibilityLabel={card.back}
+                  >
+                    {card.back}
+                  </Text>
 
-          {/* overlay */}
-          <Animated.View
-            pointerEvents="none"
-            style={[
-              styles.overlay,
-              { opacity: overlayOpacity, backgroundColor: overlayColor },
-            ]}
-          />
-        </View>
-      </Animated.View>
+                  <Text
+                    style={styles.swipeHint}
+                    accessible={false}
+                    importantForAccessibility="no"
+                  >
+                    Swipe to rate difficulty
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </FlipCard>
+
+            {/* overlay */}
+            <Animated.View pointerEvents="none" style={animatedOverlayStyle} />
+          </View>
+        </Animated.View>
+      </GestureDetector>
 
       <View style={[styles.indicators, { width: CARD_WIDTH }]}>
-        {["again", "good"].map((level) => (
+        {(["again", "good"] as const).map((level) => (
           <TouchableOpacity
             key={level}
             style={[
               styles.indicator,
               {
-                backgroundColor: getDifficultyColor(level as "again" | "good"),
+                backgroundColor: getDifficultyColor(level),
                 marginHorizontal: 5,
                 flex: 1,
               },
             ]}
-            onPress={() => onSwipe(level as "again" | "good")}
+            onPress={() => onSwipe(level)}
             accessible={true}
             accessibilityRole="button"
             accessibilityLabel={`${level} difficulty`}
