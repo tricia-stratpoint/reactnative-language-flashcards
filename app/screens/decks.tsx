@@ -21,6 +21,7 @@ import { RootStackParamList } from "../navigation/AppNavigator";
 import { getOfflineDecks } from "../utils/offlineStorage";
 import { useAllCommunityDecks } from "@/hooks/community-store";
 import firestore from "@react-native-firebase/firestore";
+import { useQuery } from "@tanstack/react-query";
 
 const DECK_COLORS = [
   Colors.red,
@@ -32,10 +33,22 @@ const DECK_COLORS = [
   Colors.pink,
 ];
 
+type NormalizedDeck = {
+  id: string;
+  name: string;
+  description: string;
+  color: string;
+  language: "spanish" | "french" | "custom" | "community";
+  type: "user" | "community";
+  originalDeck: Deck | CommunityDeck;
+};
+
 type DecksScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "DeckDetails"
 >;
+
+type CommunityDeckCardsData = Record<string, Flashcard[]>;
 
 const DeckCard = memo(function DeckCard({
   deck,
@@ -44,7 +57,7 @@ const DeckCard = memo(function DeckCard({
   offline,
   onPress,
 }: {
-  deck: any;
+  deck: NormalizedDeck;
   stats: { total: number; new: number; due: number };
   deckColor: string;
   offline: boolean;
@@ -85,9 +98,7 @@ const DeckCard = memo(function DeckCard({
           onPress={onPress}
         >
           <Text style={styles.actionButtonText}>
-            {deck.type === "community" || deck.language !== "custom"
-              ? "View Deck"
-              : "Manage Deck"}
+            {deck.type === "community" ? "View Deck" : "Manage Deck"}
           </Text>
         </TouchableOpacity>
 
@@ -116,15 +127,16 @@ function DecksScreen() {
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
   const [offlineDecks, setOfflineDecks] = useState<string[]>([]);
   const { communityDecks } = useAllCommunityDecks();
-  const [communityDeckCards, setCommunityDeckCards] = useState<
-    Record<string, Flashcard[]>
-  >({});
 
-  const getCommunityDeckStats = (deck: CommunityDeck) => {
-    const deckCards = communityDeckCards[deck.id] ?? [];
+  const getCommunityDeckStats = (
+    deck: CommunityDeck,
+    deckCards: Flashcard[] = [],
+  ): { total: number; new: number; due: number } => {
     const total = deckCards.length;
-    const newCards = deckCards.filter((c) => c.repetitions === 0).length;
-    const dueCards = deckCards.filter((c) => {
+    const newCards = deckCards.filter(
+      (c: Flashcard) => c.repetitions === 0,
+    ).length;
+    const dueCards = deckCards.filter((c: Flashcard) => {
       let nextReviewTime: number;
       if (typeof c.nextReview === "number") nextReviewTime = c.nextReview;
       else if (c.nextReview?.toMillis) nextReviewTime = c.nextReview.toMillis();
@@ -149,31 +161,38 @@ function DecksScreen() {
     return unsubscribe;
   }, [navigation]);
 
-  useEffect(() => {
-    const unsubscribes: (() => void)[] = [];
+  const fetchCommunityDeckCards = async (
+    deckId: string,
+  ): Promise<Flashcard[]> => {
+    const snapshot = await firestore()
+      .collection("communityDecks")
+      .doc(deckId)
+      .collection("cards")
+      .get();
 
-    communityDecks.forEach((deck) => {
-      const unsub = firestore()
-        .collection("communityDecks")
-        .doc(deck.id)
-        .collection("cards")
-        .onSnapshot((snapshot) => {
-          const cards: Flashcard[] = snapshot.docs.map((doc) => ({
-            id: doc.id,
-            ...doc.data(),
-          })) as Flashcard[];
+    return snapshot.docs.map((doc) => ({
+      id: doc.id,
+      ...doc.data(),
+    })) as Flashcard[];
+  };
 
-          setCommunityDeckCards((prev) => ({
-            ...prev,
-            [deck.id]: cards,
-          }));
-        });
-
-      unsubscribes.push(unsub);
-    });
-
-    return () => unsubscribes.forEach((u) => u());
-  }, [communityDecks]);
+  const { data: communityDeckCardsData = {} } = useQuery<
+    CommunityDeckCardsData,
+    Error
+  >({
+    queryKey: ["communityDecks", communityDecks.map((d) => d.id)],
+    queryFn: async () => {
+      const result: CommunityDeckCardsData = {};
+      await Promise.all(
+        communityDecks.map(async (deck) => {
+          result[deck.id] = await fetchCommunityDeckCards(deck.id);
+        }),
+      );
+      return result;
+    },
+    enabled: communityDecks.length > 0,
+    staleTime: 1000 * 60 * 5,
+  });
 
   const getDeckColor = (deck: Deck) => {
     if (deck.color) return deck.color;
@@ -199,8 +218,10 @@ function DecksScreen() {
 
   const getDeckStats = (deckId: string, deckCards?: Flashcard[]) => {
     const cardsToUse = deckCards ?? cards.filter((c) => c.deckId === deckId);
-    const newCards = cardsToUse.filter((c) => c.repetitions === 0).length;
-    const dueCards = cardsToUse.filter((c) => {
+    const newCards = cardsToUse.filter(
+      (c: Flashcard) => c.repetitions === 0,
+    ).length;
+    const dueCards = cardsToUse.filter((c: Flashcard) => {
       let nextReviewTime: number;
       if (typeof c.nextReview === "number") nextReviewTime = c.nextReview;
       else if (c.nextReview?.toMillis) nextReviewTime = c.nextReview.toMillis();
@@ -210,25 +231,31 @@ function DecksScreen() {
     return { total: cardsToUse.length, new: newCards, due: dueCards };
   };
 
-  const combinedDecks = useMemo(() => {
+  const combinedDecks: NormalizedDeck[] = useMemo(() => {
     return [
+      // Community decks
       ...communityDecks
         .filter((d) => d.status === "approved")
         .map((d) => ({
           id: d.id,
           name: d.title,
-          description: d.description,
-          color: d.color,
-          language: "community",
+          description: d.description || "",
+          color: d.color || Colors.blue,
+          language: "community" as const,
           type: "community" as const,
           originalDeck: d,
         })),
+      // User decks
       ...decks.map((d) => ({
         id: d.id,
         name: d.name,
         description: d.description,
         color: d.color,
-        language: d.language || "custom",
+        language: (d.language || "custom") as
+          | "spanish"
+          | "french"
+          | "custom"
+          | "community",
         type: "user" as const,
         originalDeck: d,
       })),
@@ -289,7 +316,10 @@ function DecksScreen() {
             sortedDecks.map((deck) => {
               const isCommunity = deck.type === "community";
               const stats = isCommunity
-                ? getCommunityDeckStats(deck.originalDeck as CommunityDeck)
+                ? getCommunityDeckStats(
+                    deck.originalDeck as CommunityDeck,
+                    communityDeckCardsData[deck.id] ?? [],
+                  )
                 : getDeckStats(
                     deck.id,
                     cards.filter((c) => c.deckId === deck.id),
