@@ -91,16 +91,20 @@ const createOrUpdateUserDocument = async () => {
     const userRef = firestore().collection("users").doc(user.uid);
     const userDoc = await userRef.get();
 
-    let role: UserRole = "user";
+    let role: UserRole = "user"; // default role
 
+    // Check if the user is super admin by email
     if (isSuperAdmin(user.email ?? undefined)) {
       role = "super_admin";
     } else if (userDoc.exists()) {
       const data = userDoc.data();
+      // Assign moderator role if applicable
       if (isModerator(data?.role)) role = "moderator";
+      // Otherwise, check super admin by existing role
       else if (isSuperAdmin(undefined, data?.role)) role = "super_admin";
     }
 
+    // Update Firestore with username, email, role
     await userRef.set(
       {
         username: user.displayName || "Unnamed User",
@@ -110,6 +114,8 @@ const createOrUpdateUserDocument = async () => {
       },
       { merge: true },
     );
+
+    // Update Zustand store
     useFlashcardStore.getState().setUserRole(role);
   } catch (err) {
     console.error("Error creating/updating user document:", err);
@@ -121,10 +127,13 @@ const refreshUserToken = async () => {
   if (!user) return;
   try {
     const idTokenResult = await user.getIdTokenResult();
+
+    // Calculate how long until token expires
     const expiresIn = idTokenResult.expirationTime
       ? new Date(idTokenResult.expirationTime).getTime() - Date.now()
       : 0;
 
+    // If token expires in less than 5 mins, refresh it
     if (expiresIn < 5 * 60 * 1000) {
       await user.getIdToken(true);
     }
@@ -132,7 +141,10 @@ const refreshUserToken = async () => {
 };
 
 const startAutoTokenRefresh = () => {
+  // Clear existing interval if any
   if (tokenRefreshInterval) clearInterval(tokenRefreshInterval);
+
+  // Refresh token every 55 minutes
   tokenRefreshInterval = setInterval(() => refreshUserToken(), 55 * 60 * 1000);
 };
 
@@ -145,19 +157,27 @@ const initializeUser = async () => {
   const user = auth().currentUser;
   if (!user) return;
 
+  // Create or update user document in Firestore
   await createOrUpdateUserDocument();
+
+  // Refresh token immediately
   await refreshUserToken();
+
+  // Start automatic token refresh every 55 minutes
   startAutoTokenRefresh();
 };
 
 auth().onIdTokenChanged((user) => {
   if (user) {
+    // When user logs in or token changes, initialize user
     initializeUser().catch(console.error);
   } else {
+    // User logged out: stop refreshing tokens and clear listeners
     stopAutoTokenRefresh();
     clearAllListeners();
   }
 });
+
 interface FlashcardState {
   decks: Deck[];
   cards: Flashcard[];
