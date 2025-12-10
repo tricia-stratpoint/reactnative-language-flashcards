@@ -33,8 +33,8 @@ export default function SettingsScreen() {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deckToDelete, setDeckToDelete] = useState<any | null>(null);
 
-  const handleLogout = () => setShowLogoutModal(true);
-  const confirmLogout = async () => {
+  const handleLogout = useCallback(() => setShowLogoutModal(true), []);
+  const confirmLogout = useCallback(async () => {
     clearAllListeners();
     setShowLogoutModal(false);
     try {
@@ -45,18 +45,18 @@ export default function SettingsScreen() {
         routes: [{ name: "Login" as never }],
       });
     } catch {}
-  };
+  }, [navigation]);
 
-  const handleClearData = () => setShowClearModal(true);
-  const showAbout = () => setShowAboutModal(true);
+  const handleClearData = useCallback(() => setShowClearModal(true), []);
+  const showAbout = useCallback(() => setShowAboutModal(true), []);
 
-  const handleTestNotification = async () => {
+  const handleTestNotification = useCallback(async () => {
     const userId = auth().currentUser?.uid;
     if (!userId) return;
 
     await showTestNotification();
     await scheduleStudyReminder(userId);
-  };
+  }, []);
 
   const loadDecks = useCallback(async () => {
     const userDecks = (await getOfflineDecks(true)).map((d: any) => ({
