@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, memo } from "react";
+import React, { useState, memo } from "react";
 import {
   View,
   Text,
@@ -13,15 +13,10 @@ import { LinearGradient } from "expo-linear-gradient";
 import { Plus, BookOpen, BookAlert, Check } from "lucide-react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
-import { useFlashcardStore } from "@/hooks/flashcard-store";
 import { Colors } from "../constants/colors";
-import { Flashcard, Deck, CommunityDeck } from "@/types/flashcard";
-import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
-import { getOfflineDecks } from "../utils/offlineStorage";
-import { useAllCommunityDecks } from "@/hooks/community-store";
-import firestore from "@react-native-firebase/firestore";
-import { useQuery } from "@tanstack/react-query";
+import { NativeStackNavigationProp } from "@react-navigation/native-stack";
+import { NormalizedDeck, useDecks } from "@/hooks/useDecks";
 
 const DECK_COLORS = [
   Colors.red,
@@ -33,22 +28,10 @@ const DECK_COLORS = [
   Colors.pink,
 ];
 
-type NormalizedDeck = {
-  id: string;
-  name: string;
-  description: string;
-  color: string;
-  language: "spanish" | "french" | "custom" | "community";
-  type: "user" | "community";
-  originalDeck: Deck | CommunityDeck;
-};
-
 type DecksScreenNavigationProp = NativeStackNavigationProp<
   RootStackParamList,
   "DeckDetails"
 >;
-
-type CommunityDeckCardsData = Record<string, Flashcard[]>;
 
 const DeckCard = memo(function DeckCard({
   deck,
@@ -120,91 +103,22 @@ const DeckCard = memo(function DeckCard({
 function DecksScreen() {
   const insets = useSafeAreaInsets();
   const navigation = useNavigation<DecksScreenNavigationProp>();
-  const { decks, cards, createDeck, isLoading } = useFlashcardStore();
+
+  const {
+    offlineDecks,
+    createDeck,
+    isLoading,
+    sortedDecks,
+    getDeckStats,
+    getCommunityDeckStats,
+    communityDeckCardsData,
+    getDeckColor,
+  } = useDecks();
+
   const [showCreateDeck, setShowCreateDeck] = useState(false);
   const [deckName, setDeckName] = useState("");
   const [deckDescription, setDeckDescription] = useState("");
   const [selectedColor, setSelectedColor] = useState(DECK_COLORS[0]);
-  const [offlineDecks, setOfflineDecks] = useState<string[]>([]);
-  const { communityDecks } = useAllCommunityDecks();
-
-  const getCommunityDeckStats = (
-    deck: CommunityDeck,
-    deckCards: Flashcard[] = [],
-  ): { total: number; new: number; due: number } => {
-    const total = deckCards.length;
-    const newCards = deckCards.filter(
-      (c: Flashcard) => c.repetitions === 0,
-    ).length;
-    const dueCards = deckCards.filter((c: Flashcard) => {
-      let nextReviewTime: number;
-      if (typeof c.nextReview === "number") nextReviewTime = c.nextReview;
-      else if (c.nextReview?.toMillis) nextReviewTime = c.nextReview.toMillis();
-      else nextReviewTime = 0;
-      return nextReviewTime <= Date.now();
-    }).length;
-
-    return { total, new: newCards, due: dueCards };
-  };
-
-  useEffect(() => {
-    const fetchOffline = async () => {
-      const userOffline = await getOfflineDecks(true);
-      const userDeckIds = userOffline.map((d: any) => d.deck.id);
-
-      const globalOffline = await getOfflineDecks(false);
-      const globalDeckIds = globalOffline.map((d: any) => d.deck.id);
-
-      setOfflineDecks([...userDeckIds, ...globalDeckIds]);
-    };
-    const unsubscribe = navigation.addListener("focus", fetchOffline);
-    return unsubscribe;
-  }, [navigation]);
-
-  const fetchCommunityDeckCards = async (
-    deckId: string,
-  ): Promise<Flashcard[]> => {
-    const snapshot = await firestore()
-      .collection("communityDecks")
-      .doc(deckId)
-      .collection("cards")
-      .get();
-
-    return snapshot.docs.map((doc) => ({
-      id: doc.id,
-      ...doc.data(),
-    })) as Flashcard[];
-  };
-
-  const { data: communityDeckCardsData = {} } = useQuery<
-    CommunityDeckCardsData,
-    Error
-  >({
-    queryKey: ["communityDecks", communityDecks.map((d) => d.id)],
-    queryFn: async () => {
-      const result: CommunityDeckCardsData = {};
-      await Promise.all(
-        communityDecks.map(async (deck) => {
-          result[deck.id] = await fetchCommunityDeckCards(deck.id);
-        }),
-      );
-      return result;
-    },
-    enabled: communityDecks.length > 0,
-    staleTime: 1000 * 60 * 5,
-  });
-
-  const getDeckColor = (deck: Deck) => {
-    if (deck.color) return deck.color;
-    switch (deck.language) {
-      case "spanish":
-        return Colors.greenMint;
-      case "french":
-        return Colors.blue;
-      default:
-        return Colors.blue;
-    }
-  };
 
   const handleCreateDeck = async () => {
     if (!deckName.trim()) return;
@@ -215,64 +129,6 @@ function DecksScreen() {
     setSelectedColor(DECK_COLORS[0]);
     setShowCreateDeck(false);
   };
-
-  const getDeckStats = (deckId: string, deckCards?: Flashcard[]) => {
-    const cardsToUse = deckCards ?? cards.filter((c) => c.deckId === deckId);
-    const newCards = cardsToUse.filter(
-      (c: Flashcard) => c.repetitions === 0,
-    ).length;
-    const dueCards = cardsToUse.filter((c: Flashcard) => {
-      let nextReviewTime: number;
-      if (typeof c.nextReview === "number") nextReviewTime = c.nextReview;
-      else if (c.nextReview?.toMillis) nextReviewTime = c.nextReview.toMillis();
-      else nextReviewTime = 0;
-      return nextReviewTime <= Date.now();
-    }).length;
-    return { total: cardsToUse.length, new: newCards, due: dueCards };
-  };
-
-  const combinedDecks: NormalizedDeck[] = useMemo(() => {
-    return [
-      // Community decks
-      ...communityDecks
-        .filter((d) => d.status === "approved")
-        .map((d) => ({
-          id: d.id,
-          name: d.title,
-          description: d.description || "",
-          color: d.color || Colors.blue,
-          language: "community" as const,
-          type: "community" as const,
-          originalDeck: d,
-        })),
-      // User decks
-      ...decks.map((d) => ({
-        id: d.id,
-        name: d.name,
-        description: d.description,
-        color: d.color,
-        language: (d.language || "custom") as
-          | "spanish"
-          | "french"
-          | "custom"
-          | "community",
-        type: "user" as const,
-        originalDeck: d,
-      })),
-    ];
-  }, [communityDecks, decks]);
-
-  const sortedDecks = useMemo(() => {
-    const order: Record<string, number> = {
-      spanish: 1,
-      french: 2,
-      community: 3,
-      custom: 4,
-    };
-    return [...combinedDecks].sort(
-      (a, b) => (order[a.language] ?? 4) - (order[b.language] ?? 4),
-    );
-  }, [combinedDecks]);
 
   if (isLoading) {
     return (
@@ -317,22 +173,16 @@ function DecksScreen() {
               const isCommunity = deck.type === "community";
               const stats = isCommunity
                 ? getCommunityDeckStats(
-                    deck.originalDeck as CommunityDeck,
+                    deck.originalDeck as any,
                     communityDeckCardsData[deck.id] ?? [],
                   )
-                : getDeckStats(
-                    deck.id,
-                    cards.filter((c) => c.deckId === deck.id),
-                  );
+                : getDeckStats(deck.id, undefined);
 
               const deckColor =
                 deck.color ||
                 (isCommunity
                   ? Colors.blue
-                  : getDeckColor({
-                      ...deck.originalDeck,
-                      description: deck.originalDeck.description || "",
-                    } as Deck));
+                  : getDeckColor(deck.originalDeck as any));
 
               const offline = offlineDecks.includes(deck.id);
 
