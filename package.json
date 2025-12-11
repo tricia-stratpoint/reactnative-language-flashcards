@@ -16,6 +16,8 @@
     "test:store": "jest __tests__/FlashcardStore.test.tsx",
     "test:notifs": "jest __tests__/notifications.test.tsx",
     "test:offline": "jest __tests__/OfflineStorage.test.tsx",
+    "test:study-flow": "jest tests/integration/study-screen.test.tsx",
+    "test:auth-flow": "jest tests/integration/auth.test.tsx",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -83,7 +85,6 @@
     "react-native-svg": "15.11.2",
     "react-native-tts": "^4.1.1",
     "react-native-web": "0.20.0",
-    "react-test-renderer": "19.0.0",
     "zustand": "^5.0.2"
   },
   "devDependencies": {
@@ -106,6 +107,7 @@
     "metro-resolver": "^0.82.5",
     "metro-runtime": "^0.82.5",
     "prettier": "^3.7.4",
+    "react-test-renderer": "^19.0.0",
     "typescript": "~5.8.3"
   },
   "private": true
