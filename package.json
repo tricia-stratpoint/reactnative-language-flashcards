@@ -16,8 +16,16 @@
     "test:store": "jest __tests__/FlashcardStore.test.tsx",
     "test:notifs": "jest __tests__/notifications.test.tsx",
     "test:offline": "jest __tests__/OfflineStorage.test.tsx",
+    "test:studyscreen": "jest __tests__/StudyScreen.test.tsx",
+    "test:achievementsscreen": "jest __tests__/AchievementsScreen.test.tsx",
+    "test:settingsscreen": "jest __tests__/SettingsScreen.test.tsx",
     "test:study-flow": "jest tests/integration/study-screen.test.tsx",
     "test:auth-flow": "jest tests/integration/auth.test.tsx",
+    "test:auth-e2e": "detox test --configuration ios.sim.debug",
+    "detox:build:ios": "detox build --configuration ios.sim.debug",
+    "detox:test:ios": "detox test --configuration ios.sim.debug",
+    "detox:build:android": "detox build --configuration android.emu.debug",
+    "detox:test:android": "detox test --configuration android.emu.debug",
     "prepare": "husky"
   },
   "lint-staged": {
@@ -31,6 +39,46 @@
     "transformIgnorePatterns": [
       "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@sentry/react-native|native-base|react-native-svg)"
     ]
+  },
+  "detox": {
+    "testRunner": "jest",
+    "runnerConfig": "e2e/config.json",
+    "apps": {
+      "ios.app": {
+        "type": "ios.app",
+        "binaryPath": "ios/build/Build/Products/Debug-iphonesimulator/ExpoApp.app",
+        "build": "xcodebuild -workspace ios/ExpoApp.xcworkspace -scheme ExpoApp -configuration Debug -sdk iphonesimulator -derivedDataPath ios/build"
+      },
+      "android.app": {
+        "type": "android.apk",
+        "binaryPath": "android/app/build/outputs/apk/debug/app-debug.apk",
+        "build": "cd android && ./gradlew assembleDebug assembleAndroidTest -DtestBuildType=debug && cd .."
+      }
+    },
+    "devices": {
+      "simulator": {
+        "type": "ios.simulator",
+        "device": {
+          "type": "iPhone 14"
+        }
+      },
+      "emulator": {
+        "type": "android.emulator",
+        "device": {
+          "avdName": "Pixel_6_API_33"
+        }
+      }
+    },
+    "configurations": {
+      "ios.sim.debug": {
+        "device": "simulator",
+        "app": "ios.app"
+      },
+      "android.emu.debug": {
+        "device": "emulator",
+        "app": "android.app"
+      }
+    }
   },
   "dependencies": {
     "@expo/vector-icons": "^14.1.0",
@@ -92,9 +140,11 @@
     "@expo/ngrok": "^4.1.0",
     "@react-native-community/cli": "^20.0.2",
     "@testing-library/react-native": "^13.3.3",
+    "@types/detox": "^17.14.3",
     "@types/jest": "^30.0.0",
     "@types/react": "~19.0.10",
     "@types/react-test-renderer": "^19.1.0",
+    "detox": "^20.46.0",
     "eslint": "^9.31.0",
     "eslint-config-expo": "^9.2.0",
     "husky": "^9.1.7",
